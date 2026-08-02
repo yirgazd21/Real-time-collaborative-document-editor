@@ -211,11 +211,11 @@ export const EditorPage = () => {
       setDocument((prev) =>
         prev
           ? {
-              ...prev,
-              title: data.title !== undefined ? data.title : prev.title,
-              updatedAt: data.savedAt || new Date(),
-              lastModifiedBy: data.lastModifiedBy || user,
-            }
+            ...prev,
+            title: data.title !== undefined ? data.title : prev.title,
+            updatedAt: data.savedAt || new Date(),
+            lastModifiedBy: data.lastModifiedBy || user,
+          }
           : null
       );
     };
@@ -257,46 +257,102 @@ export const EditorPage = () => {
 
   // Export Handlers
   const handleExportPDF = () => {
-    const element = document.querySelector(".word-document-page");
-    if (!element) return;
-    const opt = {
-      margin: 0.5,
-      filename: `${title || "document"}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-    };
-    html2pdf().set(opt).from(element).save();
+    try {
+      const element = window.document.querySelector(".word-document-page");
+      if (!element) {
+        alert("Export failed: Document element not found.");
+        return;
+      }
+
+      // Temporarily hide UI artifacts (shadows, borders) for clean PDF
+      window.document.body.classList.add("exporting-pdf");
+
+      const opt = {
+        margin: 0, // Pages already have internal margins
+        filename: `${title || "document"}.pdf`,
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: { scale: 2, windowWidth: 794, useCORS: true }, // Match A4 width
+        jsPDF: { unit: "px", format: [794, 1123], orientation: "portrait" }, // Match A4 dimensions
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        window.document.body.classList.remove("exporting-pdf");
+      }).catch(err => {
+        console.error("PDF Export Error:", err);
+        window.document.body.classList.remove("exporting-pdf");
+        alert("Failed to generate PDF. Please try again.");
+      });
+    } catch (err) {
+      console.error(err);
+      window.document.body.classList.remove("exporting-pdf");
+      alert("Failed to start PDF export.");
+    }
   };
 
   const handleExportWord = () => {
-    const html = editor?.getHTML() || "";
-    const header =
-      "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export Word</title></head><body>";
-    const footer = "</body></html>";
-    const sourceHTML = header + html + footer;
+    try {
+      const rawHtml = editor?.getHTML() || "";
 
-    const source =
-      "data:application/vnd.ms-word;charset=utf-8," +
-      encodeURIComponent(sourceHTML);
-    const fileDownload = document.createElement("a");
-    document.body.appendChild(fileDownload);
-    fileDownload.href = source;
-    fileDownload.download = `${title || "document"}.doc`;
-    fileDownload.click();
-    document.body.removeChild(fileDownload);
+      // Unwrap pagination wrappers for a clean Word document
+      const tempDiv = window.document.createElement("div");
+      tempDiv.innerHTML = rawHtml;
+
+      // Pagination plugin uses data-type="page"
+      const pages = tempDiv.querySelectorAll('[data-type="page"]');
+      pages.forEach((page) => {
+        while (page.firstChild) {
+          page.parentNode.insertBefore(page.firstChild, page);
+        }
+        page.remove();
+      });
+
+      const cleanHtml = tempDiv.innerHTML;
+
+      const header =
+        "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export Word</title></head><body>";
+      const footer = "</body></html>";
+      const sourceHTML = header + cleanHtml + footer;
+
+      const blob = new Blob(['\ufeff', sourceHTML], {
+        type: 'application/msword'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const fileDownload = window.document.createElement("a");
+      window.document.body.appendChild(fileDownload);
+      fileDownload.href = url;
+      fileDownload.download = `${title || "document"}.doc`;
+      fileDownload.click();
+
+      setTimeout(() => {
+        window.document.body.removeChild(fileDownload);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (err) {
+      console.error("Word Export Error:", err);
+      alert("Failed to export Word document.");
+    }
   };
 
   const handleExportMarkdown = () => {
-    const textContent = editor?.getText() || "";
-    const blob = new Blob([textContent], { type: "text/markdown;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `${title || "document"}.md`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const textContent = editor?.getText() || "";
+      const blob = new Blob([textContent], { type: "text/markdown;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = window.document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${title || "document"}.md`);
+      window.document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        window.document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (err) {
+      console.error("Markdown Export Error:", err);
+      alert("Failed to export Markdown document.");
+    }
   };
 
   if (loading) {
@@ -405,11 +461,10 @@ export const EditorPage = () => {
               setIsHistoryOpen(!isHistoryOpen);
               if (!isHistoryOpen) setIsCommentsOpen(false);
             }}
-            className={`p-2 rounded-xl border transition-colors ${
-              isHistoryOpen
+            className={`p-2 rounded-xl border transition-colors ${isHistoryOpen
                 ? "bg-indigo-600 border-indigo-500 text-white"
                 : "glass-panel hover:bg-slate-800/30"
-            }`}
+              }`}
             title="Version History"
           >
             <History className="w-4 h-4" />
@@ -421,11 +476,10 @@ export const EditorPage = () => {
               setIsCommentsOpen(!isCommentsOpen);
               if (!isCommentsOpen) setIsHistoryOpen(false);
             }}
-            className={`p-2 rounded-xl border transition-colors ${
-              isCommentsOpen
+            className={`p-2 rounded-xl border transition-colors ${isCommentsOpen
                 ? "bg-indigo-600 border-indigo-500 text-white"
                 : "glass-panel hover:bg-slate-800/30"
-            }`}
+              }`}
             title="Comments Thread"
           >
             <MessageSquare className="w-4 h-4" />
@@ -464,6 +518,7 @@ export const EditorPage = () => {
           <div className="word-document-page w-full min-h-[850px] rounded-2xl shadow-2xl p-8 sm:p-12 transition-all">
             <EditorContent editor={editor} />
           </div>
+
         </main>
 
         {/* Aligned Side Panels (Comments or Version History) */}
