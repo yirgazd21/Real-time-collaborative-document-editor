@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+:root, html.dark {
+  --bg-main: #0b0f19;
+  --bg-card: rgba(30, 41, 59, 0.75);
+  --bg-paper: #1e293b;
+  --bg-toolbar: rgba(15, 23, 42, 0.85);
+  --bg-input: rgba(15, 23, 42, 0.8);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --prose-h: #f8fafc;
+  color-scheme: dark;
+}
+
+html.light {
+  --bg-main: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-paper: #ffffff;
+  --bg-toolbar: rgba(255, 255, 255, 0.95);
+  --bg-input: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: rgba(203, 213, 225, 0.9);
+  --prose-h: #0f172a;
+  color-scheme: light;
+}
+
+@layer base {
+  html, body {
+    background-color: var(--bg-main) !important;
+    color: var(--text-main) !important;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Glassmorphism & Panel Styling */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+/* Paginated Word Document Sheet Canvas */
+.word-document-page {
+  background-color: var(--bg-paper) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.08);
+}
+
+/* Form Input Theme Compatibility */
+input, select, textarea {
+  color: var(--text-main);
+}
+
+html.light input, 
+html.light select, 
+html.light textarea {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+html.light input::placeholder, 
+html.light textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.8);
+}
+
+/* Page Break Divider Styling */
+.ProseMirror hr {
+  border: none;
+  border-top: 2px dashed #6366f1;
+  margin: 2.5rem 0;
+  position: relative;
+}
+
+.ProseMirror hr::after {
+  content: 'PAGE BREAK';
+  position: absolute;
+  right: 0;
+  top: -12px;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #6366f1;
+  background: var(--bg-paper);
+  padding: 0 8px;
+}
+
+/* Task List Styling */
+ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+ul[data-type="taskList"] li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  user-select: none;
+}
+
+ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+}
+
+/* Image Resizing Support */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1rem 0;
+}
+
+/* Tiptap Rich Editor Styling */
+.ProseMirror {
+  outline: none;
+  min-height: 550px;
+  padding: 1.5rem;
+  color: var(--text-main);
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-muted);
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--prose-h);
+}
+
+.ProseMirror h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--prose-h);
+}
+
+.ProseMirror h3 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--prose-h);
+}
+
+.ProseMirror h4 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--prose-h);
+}
+
+.ProseMirror ul:not([data-type="taskList"]) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror blockquote {
+  border-left: 4px solid #6366f1;
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ProseMirror a {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
+.ProseMirror a:hover {
+  color: #4f46e5;
+}
