@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-:root, html.dark {
+:root,
+html.dark {
   --bg-main: #0b0f19;
   --bg-card: rgba(30, 41, 59, 0.75);
   --bg-paper: #1e293b;
@@ -27,7 +28,9 @@ html.light {
 }
 
 @layer base {
-  html, body {
+
+  html,
+  body {
     background-color: var(--bg-main) !important;
     color: var(--text-main) !important;
     min-height: 100vh;
@@ -35,7 +38,12 @@ html.light {
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Outfit', sans-serif;
   }
 }
@@ -57,19 +65,21 @@ html.light {
 }
 
 /* Form Input Theme Compatibility */
-input, select, textarea {
+input,
+select,
+textarea {
   color: var(--text-main);
 }
 
-html.light input, 
-html.light select, 
+html.light input,
+html.light select,
 html.light textarea {
   background-color: #f8fafc;
   border-color: #cbd5e1;
   color: #0f172a;
 }
 
-html.light input::placeholder, 
+html.light input::placeholder,
 html.light textarea::placeholder {
   color: #94a3b8;
 }
@@ -127,12 +137,12 @@ ul[data-type="taskList"] li {
   margin-bottom: 0.25rem;
 }
 
-ul[data-type="taskList"] li > label {
+ul[data-type="taskList"] li>label {
   flex: 0 0 auto;
   user-select: none;
 }
 
-ul[data-type="taskList"] li > div {
+ul[data-type="taskList"] li>div {
   flex: 1 1 auto;
 }
 

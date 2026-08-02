@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
           const data = await authService.getCurrentUser();
           setUser(data.user);
         } catch (err) {
-          // Token is invalid or expired; clear it silently.
+          console.error("Auth initialization failed:", err);
           localStorage.removeItem("accessToken");
           setUser(null);
         }
