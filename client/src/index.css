@@ -51,10 +51,9 @@ html.light {
 
 /* Paginated Word Document Sheet Canvas */
 .word-document-page {
-  background-color: var(--bg-paper) !important;
   color: var(--text-main) !important;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: center;
 }
 
 /* Form Input Theme Compatibility */
@@ -148,9 +147,14 @@ ul[data-type="taskList"] li > div {
 /* Tiptap Rich Editor Styling */
 .ProseMirror {
   outline: none;
-  min-height: 550px;
-  padding: 1.5rem;
   color: var(--text-main);
+}
+
+/* Pagination extension dark mode support */
+html.dark .ProseMirror .page {
+  background-color: var(--bg-paper);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.4);
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {

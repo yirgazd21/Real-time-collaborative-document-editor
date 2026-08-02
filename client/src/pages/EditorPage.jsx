@@ -11,6 +11,7 @@ import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import { PaginationPlus } from "tiptap-pagination-plus";
 import { FontSize } from "../features/editor/FontSize";
 import html2pdf from "html2pdf.js";
 import { formatDistanceToNow } from "date-fns";
@@ -91,6 +92,9 @@ export const EditorPage = () => {
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],
+      }),
+      PaginationPlus.configure({
+        addCss: true,
       }),
     ],
     content: "",
