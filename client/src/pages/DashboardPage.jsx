@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "../context/AuthContext";
 import { docService } from "../services/docService";
 import { Navbar } from "../components/common/Navbar";
@@ -98,32 +99,43 @@ export const DashboardPage = () => {
     fetchDocuments(searchQuery);
   };
 
-  // Helper to retrieve recently opened documents from localStorage & sorted updatedAt
   const getRecentlyOpenedDocs = () => {
     try {
-      const recentIds = JSON.parse(localStorage.getItem("recentlyOpenedDocs") || "[]");
-      if (recentIds.length > 0) {
-        const docMap = new Map(documents.all.map((d) => [d._id, d]));
-        const ordered = [];
-        for (const id of recentIds) {
-          if (docMap.has(id)) {
-            ordered.push(docMap.get(id));
-            docMap.delete(id);
-          }
+      const recentMap = JSON.parse(localStorage.getItem("recentlyOpenedMap") || "{}");
+      const docMap = new Map(documents.all.map((d) => [d._id, d]));
+      const result = [];
+
+      const sortedEntries = Object.entries(recentMap).sort((a, b) => b[1] - a[1]);
+
+      for (const [id, openedAt] of sortedEntries) {
+        if (docMap.has(id)) {
+          const doc = docMap.get(id);
+          result.push({
+            ...doc,
+            lastOpenedAt: openedAt,
+          });
+          docMap.delete(id);
         }
-        // Append remaining documents sorted by updatedAt
-        const remaining = Array.from(docMap.values()).sort(
-          (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-        );
-        return [...ordered, ...remaining];
       }
+
+      const remaining = Array.from(docMap.values())
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        .map((d) => ({
+          ...d,
+          lastOpenedAt: new Date(d.updatedAt).getTime(),
+        }));
+
+      return [...result, ...remaining];
     } catch (e) {
-      console.error("Error reading recent docs", e);
+      console.error("Error reading recent docs map", e);
     }
-    // Fallback sort by updatedAt descending
-    return [...documents.all].sort(
-      (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-    );
+
+    return [...documents.all]
+      .map((d) => ({
+        ...d,
+        lastOpenedAt: new Date(d.updatedAt).getTime(),
+      }))
+      .sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
   };
 
   const getDisplayedDocs = () => {
@@ -137,187 +149,228 @@ export const DashboardPage = () => {
   const recentDocsList = getRecentlyOpenedDocs();
 
   return (
-    <div className="min-h-screen transition-colors flex flex-col">
+    <div className="min-h-screen transition-colors flex flex-col bg-slate-50 dark:bg-slate-950">
       <Navbar onSearchChange={setSearchQuery} searchValue={searchQuery} />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
-        {/* Welcome & Action Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Welcome back, {user?.name?.split(" ")[0]} 👋
-            </h1>
-            <p className="text-sm opacity-70 mt-1">
-              Manage your documents and collaborate with your team in real time.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setIsOpenDocModalOpen(true)}
-              className="bg-slate-800/40 hover:bg-slate-800 text-slate-200"
-            >
-              <ExternalLink className="w-4 h-4 text-indigo-400" />
-              <span>Open Existing</span>
-            </Button>
-
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => setIsCreateOpen(true)}
-              className="shadow-xl shadow-indigo-600/30"
-            >
-              <Plus className="w-5 h-5" />
-              <span>New Document</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-500">
-              <FolderOpen className="w-6 h-6" />
-            </div>
+      {/* Main Google Docs Style Full-Width Container */}
+      <div className="flex-1 flex w-full">
+        
+        {/* GOOGLE DOCS STYLE FLUSH-LEFT SIDEBAR (No left margin, zero shadow) */}
+        <aside className="w-64 sm:w-72 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 space-y-6 flex flex-col justify-between">
+          <div className="space-y-6">
+            {/* Standard Google Docs Blank Document Action Button */}
             <div>
-              <p className="text-2xl font-bold">{documents.all.length}</p>
-              <p className="text-xs opacity-70">Total Accessible</p>
+              <button
+                onClick={() => setIsCreateOpen(true)}
+                className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-black dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all font-black text-sm shadow-md hover:shadow-lg"
+              >
+                <Plus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <span>Blank Document</span>
+              </button>
+            </div>
+
+            {/* Main Navigation Menu */}
+            <nav className="space-y-1">
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                  activeTab === "all"
+                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
+                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                }`}
+              >
+                <FolderOpen className="w-4 h-4 shrink-0" />
+                <span>All Documents</span>
+                <span className="ml-auto text-[11px] opacity-70">({documents.all.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("recent")}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                  activeTab === "recent"
+                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
+                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                }`}
+              >
+                <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Recent Documents</span>
+                <span className="ml-auto text-[11px] opacity-70">({recentDocsList.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("owned")}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                  activeTab === "owned"
+                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
+                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                }`}
+              >
+                <FileText className="w-4 h-4 text-purple-600 shrink-0" />
+                <span>Owned by me</span>
+                <span className="ml-auto text-[11px] opacity-70">({documents.owned.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("shared")}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                  activeTab === "shared"
+                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
+                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                }`}
+              >
+                <Users className="w-4 h-4 text-cyan-600 shrink-0" />
+                <span>Shared with me</span>
+                <span className="ml-auto text-[11px] opacity-70">({documents.shared.length})</span>
+              </button>
+            </nav>
+
+            {/* RECENTLY OPENED LIST */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between px-2 text-xs font-black text-black dark:text-white uppercase tracking-wider">
+                <span>Recently Opened</span>
+                <span className="text-[10px] text-slate-500 font-bold">{recentDocsList.length}</span>
+              </div>
+
+              {recentDocsList.length > 0 ? (
+                <div className="space-y-1 max-h-[calc(100vh-340px)] overflow-y-auto pr-1">
+                  {recentDocsList.slice(0, 10).map((doc) => {
+                    const isOwner = doc.owner?._id === user?._id;
+                    const ownerName = isOwner ? "You" : doc.owner?.name || "Owner";
+                    const formattedOpenedTime = doc.lastOpenedAt
+                      ? formatDistanceToNow(new Date(doc.lastOpenedAt), { addSuffix: true })
+                      : "Recently";
+
+                    return (
+                      <button
+                        key={doc._id}
+                        onClick={() => {
+                          try {
+                            const recentMap = JSON.parse(
+                              localStorage.getItem("recentlyOpenedMap") || "{}"
+                            );
+                            recentMap[doc._id] = Date.now();
+                            localStorage.setItem(
+                              "recentlyOpenedMap",
+                              JSON.stringify(recentMap)
+                            );
+                          } catch (err) {}
+                          navigate(`/document/${doc._id}`);
+                        }}
+                        className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors group"
+                        title={`Opened ${formattedOpenedTime}`}
+                      >
+                        <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-black dark:text-white group-hover:text-indigo-600 truncate">
+                            {doc.title || "Untitled"}
+                          </p>
+                          <p className="text-[10px] font-semibold text-slate-500 truncate">
+                            {ownerName} • Opened {formattedOpenedTime}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs font-bold text-slate-400 px-2 py-1">
+                  No recently opened docs.
+                </p>
+              )}
             </div>
           </div>
+        </aside>
 
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500">
-              <Clock className="w-6 h-6" />
-            </div>
+        {/* RIGHT MAIN WORKSPACE AREA */}
+        <main className="flex-1 p-6 lg:p-8 space-y-6 min-w-0">
+          
+          {/* Header Title & Action (Replaced +New Document with Open Document by Link) */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div>
-              <p className="text-2xl font-bold">{recentDocsList.length}</p>
-              <p className="text-xs opacity-70">Recently Opened</p>
+              <h1 className="text-2xl font-black text-black dark:text-white">
+                {activeTab === "all" && "All Documents"}
+                {activeTab === "recent" && "Recent Documents"}
+                {activeTab === "owned" && "Owned by Me"}
+                {activeTab === "shared" && "Shared with Me"}
+              </h1>
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mt-1">
+                Welcome back, {user?.name} 👋 • Real-time collaboration space
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => fetchDocuments(searchQuery)}
+                className="p-2 rounded-xl text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors border border-slate-300 dark:border-slate-700"
+                title="Refresh List"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => setIsOpenDocModalOpen(true)}
+                className="font-black text-xs"
+              >
+                <ExternalLink className="w-4 h-4" /> Open Document by Link
+              </Button>
             </div>
           </div>
 
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-500">
-              <FileText className="w-6 h-6" />
+          {/* Document Cards Grid */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400 mb-3" />
+              <p className="text-sm font-black text-black dark:text-white">Loading documents...</p>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{documents.owned.length}</p>
-              <p className="text-xs opacity-70">Owned by You</p>
+          ) : displayedDocs.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {displayedDocs.map((doc) => (
+                <DocumentCard
+                  key={doc._id}
+                  doc={doc}
+                  currentUserId={user?._id}
+                  onRename={(d) => setSelectedDocForRename(d)}
+                  onDuplicate={handleDuplicate}
+                  onDelete={handleDelete}
+                  onShare={(d) => setSelectedDocForShare(d)}
+                />
+              ))}
             </div>
-          </div>
-
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-500">
-              <Users className="w-6 h-6" />
+          ) : (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center max-w-md mx-auto my-12 space-y-4 border border-slate-200 dark:border-slate-800">
+              <div className="w-16 h-16 rounded-2xl bg-black text-white flex items-center justify-center mx-auto">
+                <FileText className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-black dark:text-white">No Documents Found</h3>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                {searchQuery
+                  ? `No documents matching "${searchQuery}"`
+                  : "Create your first document to start writing and collaborating."}
+              </p>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => setIsCreateOpen(true)}
+                  className="font-black text-xs"
+                >
+                  <Plus className="w-4 h-4" /> Blank Document
+                </Button>
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setIsOpenDocModalOpen(true)}
+                  className="font-black text-xs"
+                >
+                  <ExternalLink className="w-4 h-4" /> Open Link
+                </Button>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{documents.shared.length}</p>
-              <p className="text-xs opacity-70">Shared with You</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters & Tabs */}
-        <div className="flex items-center justify-between border-b border-slate-700/50 pb-4">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab("all")}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all whitespace-nowrap ${
-                activeTab === "all"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                  : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
-              }`}
-            >
-              All Documents ({documents.all.length})
-            </button>
-
-            <button
-              onClick={() => setActiveTab("recent")}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === "recent"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                  : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
-              }`}
-            >
-              <Clock className="w-4 h-4 text-amber-400" />
-              <span>Recently Opened ({recentDocsList.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("owned")}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all whitespace-nowrap ${
-                activeTab === "owned"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                  : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
-              }`}
-            >
-              Owned by Me ({documents.owned.length})
-            </button>
-
-            <button
-              onClick={() => setActiveTab("shared")}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all whitespace-nowrap ${
-                activeTab === "shared"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                  : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
-              }`}
-            >
-              Shared with Me ({documents.shared.length})
-            </button>
-          </div>
-
-          <button
-            onClick={() => fetchDocuments(searchQuery)}
-            className="p-2 rounded-xl opacity-70 hover:opacity-100 hover:bg-slate-800/20 transition-colors"
-            title="Refresh List"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Document Grid */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
-            <p className="text-sm opacity-70">Loading documents...</p>
-          </div>
-        ) : displayedDocs.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {displayedDocs.map((doc) => (
-              <DocumentCard
-                key={doc._id}
-                doc={doc}
-                currentUserId={user?._id}
-                onRename={(d) => setSelectedDocForRename(d)}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDelete}
-                onShare={(d) => setSelectedDocForShare(d)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="glass-panel rounded-3xl p-12 text-center max-w-md mx-auto my-12 space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
-              <FileText className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold">No Documents Found</h3>
-            <p className="text-sm opacity-70">
-              {searchQuery
-                ? `No documents matching "${searchQuery}"`
-                : "Create your first document to start writing and collaborating."}
-            </p>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => setIsCreateOpen(true)}
-              className="mx-auto mt-2"
-            >
-              <Plus className="w-4 h-4" /> Create Document
-            </Button>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
 
       {/* Create Modal */}
       <CreateDocModal

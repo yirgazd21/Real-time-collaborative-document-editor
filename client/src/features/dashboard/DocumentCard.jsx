@@ -48,7 +48,9 @@ export const DocumentCard = ({
     ? format(new Date(doc.createdAt), "MMM d, yyyy")
     : "N/A";
 
-  const lastModifiedStr = doc.updatedAt
+  const lastOpenedStr = doc.lastOpenedAt
+    ? formatDistanceToNow(new Date(doc.lastOpenedAt), { addSuffix: true })
+    : doc.updatedAt
     ? formatDistanceToNow(new Date(doc.updatedAt), { addSuffix: true })
     : "Recently";
 
@@ -58,12 +60,16 @@ export const DocumentCard = ({
 
   const handleCardClick = () => {
     try {
+      const recentMap = JSON.parse(localStorage.getItem("recentlyOpenedMap") || "{}");
+      recentMap[doc._id] = Date.now();
+      localStorage.setItem("recentlyOpenedMap", JSON.stringify(recentMap));
+
       const recentIds = JSON.parse(localStorage.getItem("recentlyOpenedDocs") || "[]");
       const filtered = recentIds.filter((id) => id !== doc._id);
       filtered.unshift(doc._id);
       localStorage.setItem("recentlyOpenedDocs", JSON.stringify(filtered.slice(0, 20)));
     } catch (err) {
-      console.error("Failed to update recently opened docs", err);
+      console.error("Failed to update recently opened docs map", err);
     }
     navigate(`/document/${doc._id}`);
   };
@@ -162,7 +168,7 @@ export const DocumentCard = ({
         </div>
       </div>
 
-      {/* Title Header - Bold Black */}
+      {/* Title Header */}
       <div className="my-3">
         <h3
           className="text-base font-black text-black dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1"
@@ -172,7 +178,7 @@ export const DocumentCard = ({
         </h3>
       </div>
 
-      {/* Explicit Metadata Section: Owner, Date Created, Last Modified - Black Text */}
+      {/* Explicit Metadata Section: Owner, Date Created, Opened Time */}
       <div className="space-y-1.5 text-xs font-bold border-t border-b border-black/20 dark:border-slate-800 py-2.5 my-1">
         {/* Owner */}
         <div className="flex items-center gap-1.5 text-black dark:text-slate-200">
@@ -190,11 +196,11 @@ export const DocumentCard = ({
           <span className="font-black text-black dark:text-slate-100">{createdDateStr}</span>
         </div>
 
-        {/* Last Modified */}
+        {/* Opened / Modified Time */}
         <div className="flex items-center gap-1.5 text-black dark:text-slate-200">
           <Clock className="w-3.5 h-3.5 text-black dark:text-amber-400 shrink-0" />
-          <span className="font-extrabold text-black dark:text-slate-400">Modified:</span>
-          <span className="font-black text-black dark:text-slate-100">{lastModifiedStr}</span>
+          <span className="font-extrabold text-black dark:text-slate-400">Opened:</span>
+          <span className="font-black text-black dark:text-slate-100">{lastOpenedStr}</span>
         </div>
       </div>
 
