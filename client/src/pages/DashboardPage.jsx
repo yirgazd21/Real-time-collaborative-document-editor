@@ -18,7 +18,6 @@ import {
   Loader2,
   RefreshCw,
   Clock,
-  ExternalLink,
 } from "lucide-react";
 
 export const DashboardPage = () => {
@@ -149,20 +148,20 @@ export const DashboardPage = () => {
   const recentDocsList = getRecentlyOpenedDocs();
 
   return (
-    <div className="min-h-screen transition-colors flex flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen transition-colors flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
       <Navbar onSearchChange={setSearchQuery} searchValue={searchQuery} />
 
       {/* Main Google Docs Style Full-Width Container */}
       <div className="flex-1 flex w-full">
         
-        {/* GOOGLE DOCS STYLE FLUSH-LEFT SIDEBAR (No left margin, zero shadow) */}
-        <aside className="w-64 sm:w-72 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 space-y-6 flex flex-col justify-between">
+        {/* GOOGLE DOCS STYLE FLUSH-LEFT SIDEBAR */}
+        <aside className="w-64 sm:w-72 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-6 flex flex-col justify-between">
           <div className="space-y-6">
             {/* Standard Google Docs Blank Document Action Button */}
             <div>
               <button
                 onClick={() => setIsCreateOpen(true)}
-                className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-black dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all font-black text-sm shadow-md hover:shadow-lg"
+                className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-all font-extrabold text-sm shadow-sm hover:shadow-md"
               >
                 <Plus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 <span>Blank Document</span>
@@ -173,10 +172,10 @@ export const DashboardPage = () => {
             <nav className="space-y-1">
               <button
                 onClick={() => setActiveTab("all")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === "all"
-                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
-                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 <FolderOpen className="w-4 h-4 shrink-0" />
@@ -186,10 +185,10 @@ export const DashboardPage = () => {
 
               <button
                 onClick={() => setActiveTab("recent")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === "recent"
-                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
-                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 <Clock className="w-4 h-4 text-amber-500 shrink-0" />
@@ -199,10 +198,10 @@ export const DashboardPage = () => {
 
               <button
                 onClick={() => setActiveTab("owned")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === "owned"
-                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
-                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 <FileText className="w-4 h-4 text-purple-600 shrink-0" />
@@ -212,10 +211,10 @@ export const DashboardPage = () => {
 
               <button
                 onClick={() => setActiveTab("shared")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === "shared"
-                    ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400"
-                    : "text-black dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 <Users className="w-4 h-4 text-cyan-600 shrink-0" />
@@ -226,7 +225,7 @@ export const DashboardPage = () => {
 
             {/* RECENTLY OPENED LIST */}
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-              <div className="flex items-center justify-between px-2 text-xs font-black text-black dark:text-white uppercase tracking-wider">
+              <div className="flex items-center justify-between px-2 text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">
                 <span>Recently Opened</span>
                 <span className="text-[10px] text-slate-500 font-bold">{recentDocsList.length}</span>
               </div>
@@ -256,15 +255,15 @@ export const DashboardPage = () => {
                           } catch (err) {}
                           navigate(`/document/${doc._id}`);
                         }}
-                        className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors group"
+                        className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
                         title={`Opened ${formattedOpenedTime}`}
                       >
                         <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-black dark:text-white group-hover:text-indigo-600 truncate">
+                          <p className="text-xs font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
                             {doc.title || "Untitled"}
                           </p>
-                          <p className="text-[10px] font-semibold text-slate-500 truncate">
+                          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate">
                             {ownerName} • Opened {formattedOpenedTime}
                           </p>
                         </div>
@@ -284,7 +283,7 @@ export const DashboardPage = () => {
           <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
             <button
               onClick={() => setIsOpenDocModalOpen(true)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-black text-black dark:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-extrabold text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <FolderOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span>Open Document</span>
@@ -298,7 +297,7 @@ export const DashboardPage = () => {
           {/* Header Title & Action ("Open" button) */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div>
-              <h1 className="text-2xl font-black text-black dark:text-white">
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
                 {activeTab === "all" && "All Documents"}
                 {activeTab === "recent" && "Recent Documents"}
                 {activeTab === "owned" && "Owned by Me"}
@@ -312,7 +311,7 @@ export const DashboardPage = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => fetchDocuments(searchQuery)}
-                className="p-2 rounded-xl text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors border border-slate-300 dark:border-slate-700"
+                className="p-2 rounded-xl text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors border border-slate-300 dark:border-slate-700"
                 title="Refresh List"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -322,7 +321,7 @@ export const DashboardPage = () => {
                 variant="primary"
                 size="md"
                 onClick={() => setIsOpenDocModalOpen(true)}
-                className="font-black text-xs px-4"
+                className="font-extrabold text-xs px-4"
               >
                 <FolderOpen className="w-4 h-4" /> Open
               </Button>
@@ -333,7 +332,7 @@ export const DashboardPage = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400 mb-3" />
-              <p className="text-sm font-black text-black dark:text-white">Loading documents...</p>
+              <p className="text-sm font-extrabold text-slate-900 dark:text-white">Loading documents...</p>
             </div>
           ) : displayedDocs.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -351,10 +350,10 @@ export const DashboardPage = () => {
             </div>
           ) : (
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center max-w-md mx-auto my-12 space-y-4 border border-slate-200 dark:border-slate-800">
-              <div className="w-16 h-16 rounded-2xl bg-black text-white flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
                 <FileText className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-black text-black dark:text-white">No Documents Found</h3>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">No Documents Found</h3>
               <p className="text-sm font-bold text-slate-600 dark:text-slate-400">
                 {searchQuery
                   ? `No documents matching "${searchQuery}"`
@@ -365,7 +364,7 @@ export const DashboardPage = () => {
                   variant="primary"
                   size="md"
                   onClick={() => setIsCreateOpen(true)}
-                  className="font-black text-xs"
+                  className="font-extrabold text-xs"
                 >
                   <Plus className="w-4 h-4" /> Blank Document
                 </Button>
@@ -373,7 +372,7 @@ export const DashboardPage = () => {
                   variant="outline"
                   size="md"
                   onClick={() => setIsOpenDocModalOpen(true)}
-                  className="font-black text-xs"
+                  className="font-extrabold text-xs"
                 >
                   <FolderOpen className="w-4 h-4" /> Open
                 </Button>
@@ -390,7 +389,7 @@ export const DashboardPage = () => {
         onCreate={handleCreateDocument}
       />
 
-      {/* Open Document Modal (with Select Existing File & Paste Shared URL tabs) */}
+      {/* Open Document Modal */}
       <OpenDocModal
         isOpen={isOpenDocModalOpen}
         onClose={() => setIsOpenDocModalOpen(false)}

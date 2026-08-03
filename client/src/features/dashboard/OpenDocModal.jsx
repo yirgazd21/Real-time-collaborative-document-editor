@@ -6,7 +6,6 @@ import {
   ExternalLink,
   Link2,
   FileText,
-  UserCheck,
   CheckCircle2,
   Users,
   Search,
@@ -43,7 +42,6 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
 
     setDocInput("");
     onClose();
-    // Navigating to document will trigger backend getDocumentById which auto-adds user to collaborators
     navigate(`/document/${docId}`);
   };
 
@@ -65,7 +63,7 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Open Document">
       <div className="space-y-4">
         {/* Mode Selector Tabs */}
-        <div className="flex items-center gap-1 p-1 bg-black text-white rounded-xl text-xs font-black">
+        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black">
           <button
             type="button"
             onClick={() => {
@@ -74,8 +72,8 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
             }}
             className={`flex-1 py-2 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 ${
               activeTab === "existing"
-                ? "bg-white text-black shadow"
-                : "text-slate-300 hover:text-white"
+                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                : "text-slate-700 dark:text-slate-300 hover:text-black dark:hover:text-white"
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -90,8 +88,8 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
             }}
             className={`flex-1 py-2 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 ${
               activeTab === "url"
-                ? "bg-white text-black shadow"
-                : "text-slate-300 hover:text-white"
+                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                : "text-slate-700 dark:text-slate-300 hover:text-black dark:hover:text-white"
             }`}
           >
             <Link2 className="w-3.5 h-3.5" />
@@ -103,20 +101,20 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
         {activeTab === "existing" && (
           <form onSubmit={handleOpenExisting} className="space-y-4">
             <div>
-              <label className="block text-xs font-black text-black dark:text-white uppercase tracking-wider mb-2">
+              <label className="block text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider mb-2">
                 Choose Existing Document
               </label>
 
               {documents.length > 0 ? (
                 <div className="space-y-2">
                   <div className="relative mb-2">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-black dark:text-slate-400" />
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
                       value={searchFilter}
                       onChange={(e) => setSearchFilter(e.target.value)}
                       placeholder="Filter files..."
-                      className="w-full bg-white dark:bg-black text-black dark:text-white border-2 border-black rounded-xl pl-9 pr-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                      className="w-full bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
                     />
                   </div>
 
@@ -128,19 +126,19 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
                           setSelectedDocId(doc._id);
                           setError("");
                         }}
-                        className={`flex items-center justify-between p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                        className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
                           selectedDocId === doc._id
-                            ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-600 font-black"
-                            : "bg-white dark:bg-black border-black/20 dark:border-slate-800 hover:border-slate-700"
+                            ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-600 text-indigo-900 dark:text-indigo-200 font-extrabold"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-slate-400"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-xs font-black text-black dark:text-white truncate">
+                            <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
                               {doc.title || "Untitled Document"}
                             </p>
-                            <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 truncate">
+                            <p className="text-[10px] font-bold text-slate-500 truncate">
                               Owner: {doc.owner?.name || "User"}
                             </p>
                           </div>
@@ -177,16 +175,16 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
           </form>
         )}
 
-        {/* TAB 2: Paste Shared URL / Link (Auto-Invites to Collaboration) */}
+        {/* TAB 2: Paste Shared URL / Link */}
         {activeTab === "url" && (
           <form onSubmit={handleOpenLink} className="space-y-4">
             <div>
-              <label className="block text-xs font-black text-black dark:text-white uppercase tracking-wider mb-2">
+              <label className="block text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider mb-2">
                 Shared Document URL or ID
               </label>
 
               <div className="relative">
-                <Link2 className="absolute left-3.5 top-3 w-4 h-4 text-black dark:text-white" />
+                <Link2 className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   autoFocus
@@ -196,11 +194,10 @@ export const OpenDocModal = ({ isOpen, onClose, documents = [] }) => {
                     setError("");
                   }}
                   placeholder="e.g. http://localhost:5173/document/67a1b2... or 67a1b2..."
-                  className="w-full bg-white dark:bg-black text-black dark:text-white border-2 border-black rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="w-full bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 />
               </div>
 
-              {/* Shared Link Collaboration Auto-Invite Hint */}
               <div className="mt-3 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-start gap-2 text-xs font-bold text-indigo-900 dark:text-indigo-300">
                 <Users className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                 <p>
