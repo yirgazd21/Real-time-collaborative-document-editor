@@ -279,12 +279,23 @@ export const DashboardPage = () => {
               )}
             </div>
           </div>
+
+          {/* Quick Action Button at Sidebar Bottom */}
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            <button
+              onClick={() => setIsOpenDocModalOpen(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-black text-black dark:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+            >
+              <FolderOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Open Document</span>
+            </button>
+          </div>
         </aside>
 
         {/* RIGHT MAIN WORKSPACE AREA */}
         <main className="flex-1 p-6 lg:p-8 space-y-6 min-w-0">
           
-          {/* Header Title & Action (Replaced +New Document with Open Document by Link) */}
+          {/* Header Title & Action ("Open" button) */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div>
               <h1 className="text-2xl font-black text-black dark:text-white">
@@ -311,9 +322,9 @@ export const DashboardPage = () => {
                 variant="primary"
                 size="md"
                 onClick={() => setIsOpenDocModalOpen(true)}
-                className="font-black text-xs"
+                className="font-black text-xs px-4"
               >
-                <ExternalLink className="w-4 h-4" /> Open Document by Link
+                <FolderOpen className="w-4 h-4" /> Open
               </Button>
             </div>
           </div>
@@ -364,7 +375,7 @@ export const DashboardPage = () => {
                   onClick={() => setIsOpenDocModalOpen(true)}
                   className="font-black text-xs"
                 >
-                  <ExternalLink className="w-4 h-4" /> Open Link
+                  <FolderOpen className="w-4 h-4" /> Open
                 </Button>
               </div>
             </div>
@@ -379,10 +390,11 @@ export const DashboardPage = () => {
         onCreate={handleCreateDocument}
       />
 
-      {/* Open Existing Doc Modal */}
+      {/* Open Document Modal (with Select Existing File & Paste Shared URL tabs) */}
       <OpenDocModal
         isOpen={isOpenDocModalOpen}
         onClose={() => setIsOpenDocModalOpen(false)}
+        documents={documents.all}
       />
 
       {/* Rename Modal */}
