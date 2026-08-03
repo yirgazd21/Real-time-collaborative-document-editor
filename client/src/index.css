@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------
+   THEME VARIABLES (unchanged)
+   ------------------------------------------------------------ */
 :root,
 html.dark {
   --bg-main: #0b0f19;
   --bg-card: rgba(30, 41, 59, 0.75);
   --bg-paper: #1e293b;
+  /* used only for sidebar panels, not pages */
   --bg-toolbar: rgba(15, 23, 42, 0.85);
   --bg-input: rgba(15, 23, 42, 0.8);
   --text-main: #f8fafc;
@@ -57,13 +61,6 @@ html.light {
   color: var(--text-main);
 }
 
-/* Paginated Word Document Sheet Canvas */
-.word-document-page {
-  color: var(--text-main) !important;
-  display: flex;
-  justify-content: center;
-}
-
 /* Form Input Theme Compatibility */
 input,
 select,
@@ -103,6 +100,118 @@ html.light textarea::placeholder {
   background: rgba(99, 102, 241, 0.8);
 }
 
+/* =====================================================
+   WORD‑STYLE PAGINATED DOCUMENT (FIXED)
+   ===================================================== */
+
+/* The workspace behind the pages – always gray */
+.doc-workspace {
+  display:flex;
+  justify-content:center;
+  width:100%;
+  padding:40px 0;
+  background:#e6e9ef;
+}
+
+/* Dark mode – workspace darkens, pages stay white */
+html.dark .doc-workspace {
+  background: #2a2e33;
+}
+
+/* Zoom wrapper – only scales, no background */
+.page-zoom-container {
+  transition: transform 0.15s ease;
+  /* no background */
+}
+
+/* The container that holds all pages – NO height set here */
+.word-editor {
+  /* intentionally empty – pages define themselves */
+}
+
+.word-editor .pagination-page {
+
+  width:210mm;
+  height:297mm;
+
+  background:white;
+
+  padding:25.4mm;
+
+  box-sizing:border-box;
+
+  border:1px solid #c0c4cc;
+
+  box-shadow:
+    0 4px 15px rgba(0,0,0,.15);
+
+  overflow:hidden;
+
+}
+
+/* Last page – no extra break */
+.word-editor .pagination-page:last-child {
+  page-break-after: auto;
+}
+
+/* Dark mode – pages remain white, only the border/shadow adjust */
+html.dark .word-editor .pagination-page {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #b0b4bc;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Typography inside each page – Word defaults */
+.word-editor .pagination-page .ProseMirror {
+  min-height: calc(1123px - 192px);
+  /* 931px – page minus margins */
+  font-family: "Aptos", "Calibri", "Arial", sans-serif;
+  font-size: 12pt;
+  line-height: 1.5;
+  color: inherit;
+  outline: none;
+}
+
+/* Headings stay dark on white paper */
+.word-editor .pagination-page .ProseMirror h1,
+.word-editor .pagination-page .ProseMirror h2,
+.word-editor .pagination-page .ProseMirror h3,
+.word-editor .pagination-page .ProseMirror h4 {
+  color: #1f1f1f;
+}
+
+html.dark .word-editor .pagination-page .ProseMirror h1,
+html.dark .word-editor .pagination-page .ProseMirror h2,
+html.dark .word-editor .pagination-page .ProseMirror h3,
+html.dark .word-editor .pagination-page .ProseMirror h4 {
+  color: #1f1f1f;
+}
+
+.word-editor .ProseMirror {
+
+  min-height:246.2mm;
+
+  font-family:
+    "Aptos",
+    "Calibri",
+    Arial,
+    sans-serif;
+
+  font-size:12pt;
+
+  line-height:1.5;
+
+  outline:none;
+
+}
+
+/* ------------------------------------------------------------
+   OTHER TIPTAP STYLES (keep as they were)
+   ------------------------------------------------------------ */
+
 /* Page Break Divider Styling */
 .ProseMirror hr {
   border: none;
@@ -124,7 +233,7 @@ html.light textarea::placeholder {
   padding: 0 8px;
 }
 
-/* Task List Styling */
+/* Task List */
 ul[data-type="taskList"] {
   list-style: none;
   padding: 0;
@@ -146,7 +255,7 @@ ul[data-type="taskList"] li>div {
   flex: 1 1 auto;
 }
 
-/* Image Resizing Support */
+/* Image Resizing */
 .ProseMirror img {
   max-width: 100%;
   height: auto;
@@ -154,17 +263,10 @@ ul[data-type="taskList"] li>div {
   margin: 1rem 0;
 }
 
-/* Tiptap Rich Editor Styling */
+/* Base Tiptap Editor */
 .ProseMirror {
   outline: none;
   color: var(--text-main);
-}
-
-/* Pagination extension dark mode support */
-html.dark .ProseMirror .page {
-  background-color: var(--bg-paper);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.4);
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -240,7 +342,7 @@ html.dark .ProseMirror .page {
   color: #4f46e5;
 }
 
-/* Table Styling */
+/* Tables */
 .ProseMirror table {
   border-collapse: collapse;
   table-layout: fixed;

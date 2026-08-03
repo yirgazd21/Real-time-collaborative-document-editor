@@ -5,6 +5,8 @@ import { docService } from "../services/docService";
 import { Navbar } from "../components/common/Navbar";
 import { DocumentCard } from "../features/dashboard/DocumentCard";
 import { CreateDocModal } from "../features/dashboard/CreateDocModal";
+import { RenameDocModal } from "../features/dashboard/RenameDocModal";
+import { OpenDocModal } from "../features/dashboard/OpenDocModal";
 import { ShareModal } from "../features/dashboard/ShareModal";
 import { Button } from "../components/common/Button";
 import {
@@ -14,6 +16,8 @@ import {
   FolderOpen,
   Loader2,
   RefreshCw,
+  Clock,
+  ExternalLink,
 } from "lucide-react";
 
 export const DashboardPage = () => {
@@ -23,10 +27,12 @@ export const DashboardPage = () => {
   const [documents, setDocuments] = useState({ owned: [], shared: [], all: [] });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all"); // 'all' | 'owned' | 'shared'
+  const [activeTab, setActiveTab] = useState("all"); // 'all' | 'recent' | 'owned' | 'shared'
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isOpenDocModalOpen, setIsOpenDocModalOpen] = useState(false);
   const [selectedDocForShare, setSelectedDocForShare] = useState(null);
+  const [selectedDocForRename, setSelectedDocForRename] = useState(null);
 
   const fetchDocuments = async (query = "") => {
     setLoading(true);
@@ -53,6 +59,11 @@ export const DashboardPage = () => {
     if (data.document?._id) {
       navigate(`/document/${data.document._id}`);
     }
+  };
+
+  const handleRenameDocument = async (docId, newTitle) => {
+    await docService.renameDocument(docId, newTitle);
+    fetchDocuments(searchQuery);
   };
 
   const handleDuplicate = async (id) => {
@@ -87,13 +98,43 @@ export const DashboardPage = () => {
     fetchDocuments(searchQuery);
   };
 
+  // Helper to retrieve recently opened documents from localStorage & sorted updatedAt
+  const getRecentlyOpenedDocs = () => {
+    try {
+      const recentIds = JSON.parse(localStorage.getItem("recentlyOpenedDocs") || "[]");
+      if (recentIds.length > 0) {
+        const docMap = new Map(documents.all.map((d) => [d._id, d]));
+        const ordered = [];
+        for (const id of recentIds) {
+          if (docMap.has(id)) {
+            ordered.push(docMap.get(id));
+            docMap.delete(id);
+          }
+        }
+        // Append remaining documents sorted by updatedAt
+        const remaining = Array.from(docMap.values()).sort(
+          (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+        );
+        return [...ordered, ...remaining];
+      }
+    } catch (e) {
+      console.error("Error reading recent docs", e);
+    }
+    // Fallback sort by updatedAt descending
+    return [...documents.all].sort(
+      (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+    );
+  };
+
   const getDisplayedDocs = () => {
+    if (activeTab === "recent") return getRecentlyOpenedDocs();
     if (activeTab === "owned") return documents.owned;
     if (activeTab === "shared") return documents.shared;
     return documents.all;
   };
 
   const displayedDocs = getDisplayedDocs();
+  const recentDocsList = getRecentlyOpenedDocs();
 
   return (
     <div className="min-h-screen transition-colors flex flex-col">
@@ -111,26 +152,48 @@ export const DashboardPage = () => {
             </p>
           </div>
 
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => setIsCreateOpen(true)}
-            className="shadow-xl shadow-indigo-600/30"
-          >
-            <Plus className="w-5 h-5" />
-            <span>New Document</span>
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setIsOpenDocModalOpen(true)}
+              className="bg-slate-800/40 hover:bg-slate-800 text-slate-200"
+            >
+              <ExternalLink className="w-4 h-4 text-indigo-400" />
+              <span>Open Existing</span>
+            </Button>
+
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => setIsCreateOpen(true)}
+              className="shadow-xl shadow-indigo-600/30"
+            >
+              <Plus className="w-5 h-5" />
+              <span>New Document</span>
+            </Button>
+          </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="glass-panel p-5 rounded-2xl flex items-center gap-4">
             <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-500">
               <FolderOpen className="w-6 h-6" />
             </div>
             <div>
               <p className="text-2xl font-bold">{documents.all.length}</p>
-              <p className="text-xs opacity-70">Total Accessible Docs</p>
+              <p className="text-xs opacity-70">Total Accessible</p>
+            </div>
+          </div>
+
+          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-amber-500/10 text-amber-500">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{recentDocsList.length}</p>
+              <p className="text-xs opacity-70">Recently Opened</p>
             </div>
           </div>
 
@@ -140,7 +203,7 @@ export const DashboardPage = () => {
             </div>
             <div>
               <p className="text-2xl font-bold">{documents.owned.length}</p>
-              <p className="text-xs opacity-70">Documents Owned by You</p>
+              <p className="text-xs opacity-70">Owned by You</p>
             </div>
           </div>
 
@@ -157,10 +220,10 @@ export const DashboardPage = () => {
 
         {/* Filters & Tabs */}
         <div className="flex items-center justify-between border-b border-slate-700/50 pb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all ${
+              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all whitespace-nowrap ${
                 activeTab === "all"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
                   : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
@@ -168,9 +231,22 @@ export const DashboardPage = () => {
             >
               All Documents ({documents.all.length})
             </button>
+
+            <button
+              onClick={() => setActiveTab("recent")}
+              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === "recent"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                  : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
+              }`}
+            >
+              <Clock className="w-4 h-4 text-amber-400" />
+              <span>Recently Opened ({recentDocsList.length})</span>
+            </button>
+
             <button
               onClick={() => setActiveTab("owned")}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all ${
+              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all whitespace-nowrap ${
                 activeTab === "owned"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
                   : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
@@ -178,9 +254,10 @@ export const DashboardPage = () => {
             >
               Owned by Me ({documents.owned.length})
             </button>
+
             <button
               onClick={() => setActiveTab("shared")}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all ${
+              className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all whitespace-nowrap ${
                 activeTab === "shared"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
                   : "opacity-70 hover:opacity-100 hover:bg-slate-800/20"
@@ -212,6 +289,7 @@ export const DashboardPage = () => {
                 key={doc._id}
                 doc={doc}
                 currentUserId={user?._id}
+                onRename={(d) => setSelectedDocForRename(d)}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
                 onShare={(d) => setSelectedDocForShare(d)}
@@ -246,6 +324,20 @@ export const DashboardPage = () => {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onCreate={handleCreateDocument}
+      />
+
+      {/* Open Existing Doc Modal */}
+      <OpenDocModal
+        isOpen={isOpenDocModalOpen}
+        onClose={() => setIsOpenDocModalOpen(false)}
+      />
+
+      {/* Rename Modal */}
+      <RenameDocModal
+        isOpen={Boolean(selectedDocForRename)}
+        onClose={() => setSelectedDocForRename(null)}
+        document={selectedDocForRename}
+        onRename={handleRenameDocument}
       />
 
       {/* Share Modal */}

@@ -8,6 +8,7 @@ const {
   deleteDocument,
   shareDocument,
   removeCollaborator,
+  renameDocument,
 } = require("../controllers/docController");
 
 const { protect } = require("../middlewares/authMiddleware");
@@ -25,7 +26,8 @@ router
   .get(requireDocAccess("viewer"), getDocumentById)
   .delete(requireDocAccess("owner"), deleteDocument);
 
-// Duplication & Sharing Endpoints
+// Renaming, Duplication & Sharing Endpoints
+router.patch("/:id/rename", requireDocAccess("editor"), renameDocument);
 router.post("/:id/duplicate", requireDocAccess("viewer"), duplicateDocument);
 router.post("/:id/share", requireDocAccess("editor"), shareDocument);
 router.delete(

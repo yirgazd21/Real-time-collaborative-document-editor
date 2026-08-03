@@ -258,6 +258,40 @@ const deleteDocument = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Rename document
+ * @route   PATCH /api/documents/:id/rename
+ * @access  Private (Owner / Editor)
+ */
+const renameDocument = async (req, res, next) => {
+  try {
+    const { title } = req.body;
+    const document = req.doc;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Document title cannot be empty",
+      });
+    }
+
+    document.title = title.trim();
+    document.lastModifiedBy = req.user._id;
+
+    await document.save();
+    await document.populate("owner", "name email avatar");
+    await document.populate("collaborators.user", "name email avatar");
+
+    return res.status(200).json({
+      success: true,
+      message: "Document renamed successfully",
+      document,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createDocument,
   getDocuments,
@@ -266,4 +300,6 @@ module.exports = {
   removeCollaborator,
   duplicateDocument,
   deleteDocument,
+  renameDocument,
 };
+

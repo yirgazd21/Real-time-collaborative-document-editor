@@ -33,6 +33,11 @@ export const docService = {
     return response.data;
   },
 
+  async renameDocument(id, title) {
+    const response = await axiosClient.patch(`/documents/${id}/rename`, { title });
+    return response.data;
+  },
+
   async shareDocument(id, shareData) {
     const response = await axiosClient.post(`/documents/${id}/share`, shareData);
     return response.data;
@@ -40,7 +45,7 @@ export const docService = {
 
   async removeCollaborator(id, userId) {
     const response = await axiosClient.delete(
-      `/documents/${id}/collaborators/${userId}`
+      `/documents/${id}/share/${userId}`
     );
     return response.data;
   },

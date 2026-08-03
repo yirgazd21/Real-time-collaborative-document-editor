@@ -26,8 +26,15 @@ export const authService = {
   },
 
   async getCurrentUser() {
-    const response = await axiosClient.get("/auth/me");
-    return response.data;
+    try {
+      const response = await axiosClient.get("/auth/me");
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        return null;
+      }
+      throw error;
+    }
   },
 
   async logout() {
