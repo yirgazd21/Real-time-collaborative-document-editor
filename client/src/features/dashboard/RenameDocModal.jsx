@@ -30,18 +30,18 @@ export const RenameDocModal = ({ isOpen, onClose, document, onRename }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Rename Document">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold text-black dark:text-white uppercase tracking-wider mb-2">
             New Document Title
           </label>
           <div className="relative">
-            <Edit3 className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+            <Edit3 className="absolute left-3.5 top-3 w-4 h-4 text-black" />
             <input
               type="text"
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter new title..."
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              className="w-full bg-black text-white border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>

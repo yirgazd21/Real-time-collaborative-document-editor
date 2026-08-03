@@ -42,4 +42,11 @@ export const commentService = {
     );
     return response.data;
   },
+
+  async deleteReply(docId, commentId, replyId) {
+    const response = await axiosClient.delete(
+      `/documents/${docId}/comments/${commentId}/replies/${replyId}`
+    );
+    return response.data;
+  },
 };

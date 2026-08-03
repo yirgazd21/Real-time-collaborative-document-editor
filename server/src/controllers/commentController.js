@@ -245,6 +245,59 @@ const deleteComment = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Delete a specific reply from a comment thread
+ * @route   DELETE /api/documents/:docId/comments/:commentId/replies/:replyId
+ * @access  Private (Reply Author or Document Owner)
+ */
+const deleteReply = async (req, res, next) => {
+  try {
+    const { commentId, replyId } = req.params;
+    const document = req.document || req.doc;
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment thread not found",
+      });
+    }
+
+    const reply = comment.replies.id(replyId);
+    if (!reply) {
+      return res.status(404).json({
+        success: false,
+        message: "Reply not found",
+      });
+    }
+
+    const isReplyAuthor = reply.author.toString() === req.user._id.toString();
+    const isDocOwner = document.owner._id.toString() === req.user._id.toString();
+
+    if (!isReplyAuthor && !isDocOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own replies",
+      });
+    }
+
+    comment.replies.pull(replyId);
+    await comment.save();
+    await comment.populate("author", "name email avatar");
+    await comment.populate("replies.author", "name email avatar");
+
+    broadcastCommentUpdate(req, document._id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Reply deleted successfully",
+      comment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   addComment,
   getComments,
@@ -252,4 +305,6 @@ module.exports = {
   addReply,
   toggleResolveComment,
   deleteComment,
+  deleteReply,
 };
+

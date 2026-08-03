@@ -554,10 +554,20 @@ export const EditorPage = () => {
           userAccessLevel={userAccessLevel}
           onRestoreSuccess={(restoredDoc) => {
             setDocData(restoredDoc);
-            setTitle(restoredDoc.title);
-            if (editor && restoredDoc.content) {
+            setTitle(restoredDoc.title || "Untitled Document");
+            if (editor && restoredDoc.content !== undefined) {
               isRemoteChange.current = true;
               editor.commands.setContent(restoredDoc.content);
+            }
+            setSaveStatus("Saved");
+
+            // Broadcast restored content over Socket.IO to all collaborators in room
+            if (socket && isConnected) {
+              socket.emit("send-changes", {
+                documentId,
+                content: restoredDoc.content,
+                title: restoredDoc.title,
+              });
             }
           }}
         />

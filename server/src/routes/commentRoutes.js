@@ -7,6 +7,7 @@ const {
   addReply,
   toggleResolveComment,
   deleteComment,
+  deleteReply,
 } = require("../controllers/commentController");
 
 const { protect } = require("../middlewares/authMiddleware");
@@ -32,6 +33,12 @@ router.post(
   "/:commentId/reply",
   requireDocAccess("commenter"),
   addReply
+);
+
+router.delete(
+  "/:commentId/replies/:replyId",
+  requireDocAccess("commenter"),
+  deleteReply
 );
 
 router.patch(

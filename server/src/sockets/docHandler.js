@@ -124,6 +124,20 @@ module.exports = (io, socket) => {
       await document.save();
       await document.populate("lastModifiedBy", "name email avatar");
 
+      // Auto-create version history revision snapshot if last snapshot was > 10 minutes ago
+      const TEN_MINUTES = 10 * 60 * 1000;
+      const lastRevision = await Revision.findOne({ documentId: document._id }).sort({ createdAt: -1 });
+
+      if (!lastRevision || (Date.now() - new Date(lastRevision.createdAt).getTime() > TEN_MINUTES)) {
+        await Revision.create({
+          documentId: document._id,
+          content: document.content,
+          title: document.title,
+          createdBy: user._id,
+          versionName: "Auto-saved Revision",
+        });
+      }
+
       const roomName = `document:${documentId}`;
       // Broadcast save success & updated metadata to ALL connected users in room
       io.to(roomName).emit("save-success", {

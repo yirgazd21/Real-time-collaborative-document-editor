@@ -8,6 +8,7 @@ export const Avatar = ({
   className = "",
 }) => {
   const sizeClasses = {
+    xs: "w-5 h-5 text-[10px]",
     sm: "w-7 h-7 text-xs",
     md: "w-9 h-9 text-sm",
     lg: "w-11 h-11 text-base",
@@ -15,6 +16,7 @@ export const Avatar = ({
   };
 
   const badgeSizes = {
+    xs: "w-1.5 h-1.5 border-1",
     sm: "w-2 h-2 border-1",
     md: "w-2.5 h-2.5 border-2",
     lg: "w-3 h-3 border-2",

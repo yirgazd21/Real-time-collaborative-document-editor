@@ -19,7 +19,6 @@ export const OpenDocModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    // Extract Mongo ID if a full URL was pasted (e.g., http://.../document/65a...)
     let docId = trimmed;
     if (trimmed.includes("/document/")) {
       const parts = trimmed.split("/document/");
@@ -40,11 +39,11 @@ export const OpenDocModal = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} title="Open Existing Document">
       <form onSubmit={handleOpen} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold text-black dark:text-white uppercase tracking-wider mb-2">
             Document ID or Link
           </label>
           <div className="relative">
-            <Link2 className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+            <Link2 className="absolute left-3.5 top-3 w-4 h-4 text-black" />
             <input
               type="text"
               autoFocus
@@ -54,10 +53,10 @@ export const OpenDocModal = ({ isOpen, onClose }) => {
                 setError("");
               }}
               placeholder="e.g. 67a1b2c3... or paste full link"
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              className="w-full bg-black text-white border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          {error && <p className="text-xs text-rose-400 mt-1.5">{error}</p>}
+          {error && <p className="text-xs font-bold text-rose-500 mt-1.5">{error}</p>}
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2">

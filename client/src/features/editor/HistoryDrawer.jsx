@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { versionService } from "../../services/versionService";
 import { Avatar } from "../../components/common/Avatar";
 import { Button } from "../../components/common/Button";
-import { History, X, Plus, RotateCcw, Clock, Loader2 } from "lucide-react";
+import { Modal } from "../../components/common/Modal";
+import {
+  History,
+  X,
+  Plus,
+  RotateCcw,
+  Clock,
+  Loader2,
+  Eye,
+  UserCheck,
+  Calendar,
+} from "lucide-react";
 
 export const HistoryDrawer = ({
   isOpen,
@@ -16,6 +27,7 @@ export const HistoryDrawer = ({
   const [loading, setLoading] = useState(false);
   const [newVersionName, setNewVersionName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedRevisionForPreview, setSelectedRevisionForPreview] = useState(null);
 
   const fetchRevisions = async () => {
     if (!documentId) return;
@@ -54,7 +66,7 @@ export const HistoryDrawer = ({
   const handleRestore = async (revisionId, versionName) => {
     if (
       window.confirm(
-        `Are you sure you want to restore to revision "${versionName}"? Current document content will be saved automatically.`
+        `Are you sure you want to restore to revision "${versionName}"? Current document content will be saved automatically as a safeguard.`
       )
     ) {
       try {
@@ -62,6 +74,7 @@ export const HistoryDrawer = ({
         if (onRestoreSuccess) {
           onRestoreSuccess(res.document);
         }
+        setSelectedRevisionForPreview(null);
         onClose();
       } catch (err) {
         console.error("Restore failed:", err);
@@ -74,97 +87,229 @@ export const HistoryDrawer = ({
   const canEdit = userAccessLevel === "owner" || userAccessLevel === "editor";
 
   return (
-    <aside className="w-80 lg:w-96 flex-shrink-0 glass-panel rounded-3xl border border-slate-700/50 shadow-2xl p-5 flex flex-col justify-between transition-colors animate-in fade-in slide-in-from-right-4 duration-200">
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-700/50">
-          <div className="flex items-center gap-2.5">
-            <History className="w-5 h-5 text-indigo-500" />
-            <h3 className="text-base font-semibold">Version History</h3>
+    <>
+      <aside className="w-80 lg:w-96 flex-shrink-0 glass-panel rounded-3xl border-2 border-slate-900 dark:border-slate-700 shadow-2xl p-5 flex flex-col justify-between transition-colors animate-in fade-in slide-in-from-right-4 duration-200">
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 border-b-2 border-slate-900 dark:border-slate-700">
+            <div className="flex items-center gap-2.5">
+              <History className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-base font-black text-black dark:text-white">
+                Version History
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg text-black dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg opacity-70 hover:opacity-100 hover:bg-slate-800/30"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
 
-        {/* Create Snapshot Form */}
-        {canEdit && (
-          <form onSubmit={handleCreateRevision} className="mt-3 space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider opacity-70">
-              Save Revision Snapshot
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newVersionName}
-                onChange={(e) => setNewVersionName(e.target.value)}
-                placeholder="Snapshot label..."
-                className="flex-1 glass-panel rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-              />
-              <Button type="submit" size="sm" isLoading={isCreating}>
-                <Plus className="w-3.5 h-3.5" /> Save
-              </Button>
-            </div>
-          </form>
-        )}
+          {/* Create Snapshot Form */}
+          {canEdit && (
+            <form onSubmit={handleCreateRevision} className="mt-3 space-y-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                Save Revision Snapshot
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newVersionName}
+                  onChange={(e) => setNewVersionName(e.target.value)}
+                  placeholder="Snapshot label (e.g. Draft v1)..."
+                  className="flex-1 bg-white dark:bg-black text-black dark:text-white border-2 border-black rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                />
+                <Button type="submit" size="sm" isLoading={isCreating}>
+                  <Plus className="w-3.5 h-3.5" /> Save
+                </Button>
+              </div>
+            </form>
+          )}
 
-        {/* Revision List */}
-        <div className="flex-1 overflow-y-auto mt-4 space-y-3 pr-1">
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-            </div>
-          ) : revisions.length > 0 ? (
-            revisions.map((rev) => (
-              <div
-                key={rev._id}
-                className="p-3 rounded-xl glass-panel border border-slate-700/40 hover:border-slate-700 transition-all flex items-start justify-between gap-2.5"
-              >
-                <div className="space-y-1.5 flex-1">
-                  <p className="text-xs font-semibold">
-                    {rev.versionName || "Auto-saved Revision"}
-                  </p>
+          {/* Revision List */}
+          <div className="flex-1 overflow-y-auto mt-4 space-y-3 pr-1">
+            {loading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-600 dark:text-indigo-400" />
+              </div>
+            ) : revisions.length > 0 ? (
+              revisions.map((rev) => {
+                const formattedExact = rev.createdAt
+                  ? format(new Date(rev.createdAt), "MMM d, yyyy 'at' h:mm a")
+                  : "N/A";
+                const formattedRelative = rev.createdAt
+                  ? formatDistanceToNow(new Date(rev.createdAt), { addSuffix: true })
+                  : "";
 
-                  <div className="flex items-center gap-2">
-                    <Avatar
-                      name={rev.createdBy?.name}
-                      src={rev.createdBy?.avatar}
-                      size="sm"
-                    />
-                    <span className="text-[11px] opacity-70">
-                      {rev.createdBy?.name || "Unknown Author"}
-                    </span>
+                return (
+                  <div
+                    key={rev._id}
+                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-900 dark:border-black hover:border-indigo-600 transition-all flex flex-col gap-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <p className="text-xs font-black text-black dark:text-white">
+                          {rev.versionName || "Auto-saved Revision"}
+                        </p>
+                        <p className="text-[11px] font-mono font-bold text-slate-900 dark:text-slate-200">
+                          {rev.title || "Untitled Document"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setSelectedRevisionForPreview(rev)}
+                          className="p-1.5 rounded-lg bg-black text-white hover:bg-indigo-600 transition-colors"
+                          title="Preview version content"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+
+                        {canEdit && (
+                          <button
+                            onClick={() => handleRestore(rev._id, rev.versionName)}
+                            className="p-1.5 rounded-lg bg-black text-white hover:bg-indigo-600 transition-colors"
+                            title="Restore this version"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Author Info */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-900 dark:border-slate-800">
+                      <Avatar
+                        name={rev.createdBy?.name}
+                        src={rev.createdBy?.avatar}
+                        size="sm"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-black text-black dark:text-white truncate">
+                          {rev.createdBy?.name || "Unknown Author"}
+                        </p>
+                        {rev.createdBy?.email && (
+                          <p className="text-[10px] font-bold text-slate-900 dark:text-slate-300 truncate">
+                            {rev.createdBy.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Timestamp */}
+                    <div className="flex items-center justify-between text-[10px] font-bold pt-0.5">
+                      <span className="flex items-center gap-1 font-mono text-indigo-700 dark:text-indigo-400">
+                        <Calendar className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                        {formattedExact}
+                      </span>
+                      <span className="text-slate-900 dark:text-slate-300">({formattedRelative})</span>
+                    </div>
                   </div>
+                );
+              })
+            ) : (
+              <p className="text-center text-xs font-black text-black dark:text-slate-300 py-8">
+                No previous revisions saved yet.
+              </p>
+            )}
+          </div>
+        </div>
+      </aside>
 
-                  <div className="flex items-center gap-1 text-[10px] opacity-60 font-mono">
-                    <Clock className="w-3 h-3" />
-                    {formatDistanceToNow(new Date(rev.createdAt), {
-                      addSuffix: true,
-                    })}
+      {/* Revision Content Preview Modal */}
+      {selectedRevisionForPreview && (
+        <Modal
+          isOpen={Boolean(selectedRevisionForPreview)}
+          onClose={() => setSelectedRevisionForPreview(null)}
+          title={`Preview Revision: ${selectedRevisionForPreview.versionName}`}
+        >
+          <div className="space-y-4">
+            {/* Meta details */}
+            <div className="bg-slate-100 dark:bg-black text-black dark:text-white rounded-xl p-3 border-2 border-black dark:border-slate-700 space-y-2 text-xs font-bold">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Avatar
+                    name={selectedRevisionForPreview.createdBy?.name}
+                    src={selectedRevisionForPreview.createdBy?.avatar}
+                    size="sm"
+                  />
+                  <div>
+                    <p className="font-black text-black dark:text-white">
+                      {selectedRevisionForPreview.createdBy?.name || "Unknown"}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-900 dark:text-slate-300 font-mono">
+                      {selectedRevisionForPreview.createdBy?.email}
+                    </p>
                   </div>
                 </div>
 
-                {canEdit && (
-                  <button
-                    onClick={() => handleRestore(rev._id, rev.versionName)}
-                    className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-colors"
-                    title="Restore this version"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <div className="text-right text-[11px]">
+                  <p className="font-mono text-indigo-700 dark:text-indigo-400 font-bold">
+                    {selectedRevisionForPreview.createdAt &&
+                      format(
+                        new Date(selectedRevisionForPreview.createdAt),
+                        "MMM d, yyyy 'at' h:mm a"
+                      )}
+                  </p>
+                  <p className="text-slate-900 dark:text-slate-300 font-bold">
+                    {selectedRevisionForPreview.createdAt &&
+                      formatDistanceToNow(
+                        new Date(selectedRevisionForPreview.createdAt),
+                        { addSuffix: true }
+                      )}
+                  </p>
+                </div>
               </div>
-            ))
-          ) : (
-            <p className="text-center text-xs opacity-60 py-8">
-              No previous revisions saved yet.
-            </p>
-          )}
-        </div>
-      </div>
-    </aside>
+
+              <div className="pt-2 border-t border-slate-900 dark:border-slate-800 flex items-center justify-between">
+                <span className="font-bold text-slate-900 dark:text-slate-300">Title:</span>
+                <span className="font-black text-black dark:text-white">
+                  {selectedRevisionForPreview.title || "Untitled Document"}
+                </span>
+              </div>
+            </div>
+
+            {/* Render HTML content snapshot preview */}
+            <div>
+              <label className="block text-xs font-black text-black dark:text-white uppercase tracking-wider mb-2">
+                Content Snapshot
+              </label>
+              <div
+                className="bg-white dark:bg-black border-2 border-black dark:border-slate-700 rounded-xl p-4 max-h-80 overflow-y-auto text-sm text-black dark:text-white font-medium prose max-w-none"
+                dangerouslySetInnerHTML={{
+                  __html:
+                    typeof selectedRevisionForPreview.content === "string"
+                      ? selectedRevisionForPreview.content
+                      : JSON.stringify(selectedRevisionForPreview.content),
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                variant="ghost"
+                onClick={() => setSelectedRevisionForPreview(null)}
+              >
+                Close Preview
+              </Button>
+              {canEdit && (
+                <Button
+                  variant="primary"
+                  onClick={() =>
+                    handleRestore(
+                      selectedRevisionForPreview._id,
+                      selectedRevisionForPreview.versionName
+                    )
+                  }
+                >
+                  <RotateCcw className="w-4 h-4" /> Restore This Revision
+                </Button>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 };
