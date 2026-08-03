@@ -4,6 +4,9 @@ const Revision = require("../models/Revision");
 // In-memory room presence store: documentId -> Map(socketId -> userData)
 const roomPresenceMap = new Map();
 
+// In-memory live content cache for active rooms: documentId -> { content, title }
+const roomLiveContentMap = new Map();
+
 /**
  * Socket.IO Handler for Document Real-time Collaboration & Presence
  * @param {import("socket.io").Server} io - Socket.IO Server instance
@@ -47,12 +50,40 @@ module.exports = (io, socket) => {
 
     // Notify room of user arrival
     socket.to(roomName).emit("user-joined", userInfo);
+
+    // Send latest live document content & title directly to the joining user
+    if (roomLiveContentMap.has(documentId)) {
+      const liveState = roomLiveContentMap.get(documentId);
+      socket.emit("receive-changes", liveState);
+    } else {
+      try {
+        const doc = await Document.findById(documentId);
+        if (doc) {
+          const initialState = { content: doc.content || "", title: doc.title || "Untitled Document" };
+          roomLiveContentMap.set(documentId, initialState);
+          socket.emit("receive-changes", initialState);
+        }
+      } catch (err) {
+        console.error("Error sending initial document state on join:", err);
+      }
+    }
   });
 
   /**
    * Handle broadcasting real-time document changes / deltas
    */
   socket.on("send-changes", ({ documentId, delta, content, title }) => {
+    if (!documentId) return;
+
+    // Update in-memory live room content cache so joining users get immediate live state
+    if (content !== undefined || title !== undefined) {
+      const existing = roomLiveContentMap.get(documentId) || {};
+      roomLiveContentMap.set(documentId, {
+        content: content !== undefined ? content : existing.content,
+        title: title !== undefined ? title : existing.title,
+      });
+    }
+
     const roomName = `document:${documentId}`;
     // Broadcast changes immediately to all other connected collaborators in room
     socket.to(roomName).emit("receive-changes", { delta, content, title });
@@ -124,6 +155,12 @@ module.exports = (io, socket) => {
       await document.save();
       await document.populate("lastModifiedBy", "name email avatar");
 
+      // Update room live content cache
+      roomLiveContentMap.set(documentId, {
+        content: document.content,
+        title: document.title,
+      });
+
       // Auto-create version history revision snapshot if last snapshot was > 10 minutes ago
       const TEN_MINUTES = 10 * 60 * 1000;
       const lastRevision = await Revision.findOne({ documentId: document._id }).sort({ createdAt: -1 });
@@ -166,6 +203,7 @@ module.exports = (io, socket) => {
       roomUsers.delete(socket.id);
       if (roomUsers.size === 0) {
         roomPresenceMap.delete(documentId);
+        roomLiveContentMap.delete(documentId);
       } else {
         const presenceList = Array.from(roomUsers.values());
         io.to(roomName).emit("presence-update", presenceList);

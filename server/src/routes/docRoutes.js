@@ -4,6 +4,7 @@ const {
   createDocument,
   getDocuments,
   getDocumentById,
+  updateDocument,
   duplicateDocument,
   deleteDocument,
   shareDocument,
@@ -24,6 +25,7 @@ router.route("/").post(createDocument).get(getDocuments);
 router
   .route("/:id")
   .get(requireDocAccess("viewer"), getDocumentById)
+  .put(requireDocAccess("editor"), updateDocument)
   .delete(requireDocAccess("owner"), deleteDocument);
 
 // Renaming, Duplication & Sharing Endpoints

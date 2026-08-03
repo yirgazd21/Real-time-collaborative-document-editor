@@ -88,12 +88,11 @@ const getDocumentById = async (req, res, next) => {
       (c) => c.user && c.user._id.toString() === userId.toString()
     );
 
-    // If opened by another logged-in user via link (and document is public or accessible),
-    // auto-add user to collaborators so document appears in their "Shared with Me" dashboard list!
-    if (!isOwner && !isCollaborator && document.isPublic) {
+    // If opened by another logged-in user via link, auto-add user as collaborator with editor access
+    if (!isOwner && !isCollaborator) {
       document.collaborators.push({
         user: userId,
-        role: document.publicRole || "viewer",
+        role: document.publicRole || "editor",
       });
       await document.save();
       await document.populate("collaborators.user", "name email avatar");
@@ -292,10 +291,38 @@ const renameDocument = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Update document title or content via REST API
+ * @route   PUT /api/documents/:id
+ * @access  Private (Owner / Editor)
+ */
+const updateDocument = async (req, res, next) => {
+  try {
+    const { title, content } = req.body;
+    const document = req.doc;
+
+    if (title !== undefined) document.title = title;
+    if (content !== undefined) document.content = content;
+    document.lastModifiedBy = req.user._id;
+
+    await document.save();
+    await document.populate("lastModifiedBy", "name email avatar");
+
+    return res.status(200).json({
+      success: true,
+      message: "Document updated successfully",
+      document,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createDocument,
   getDocuments,
   getDocumentById,
+  updateDocument,
   shareDocument,
   removeCollaborator,
   duplicateDocument,

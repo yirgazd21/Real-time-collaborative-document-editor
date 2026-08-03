@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Document = require("../models/Document");
 
 const ROLE_HIERARCHY = {
@@ -16,10 +17,10 @@ const requireDocAccess = (requiredRole = "viewer") => {
     try {
       const docId = req.params.id || req.params.docId || req.body.documentId;
 
-      if (!docId) {
+      if (!docId || !mongoose.Types.ObjectId.isValid(docId)) {
         return res.status(400).json({
           success: false,
-          message: "Document ID is required",
+          message: "Valid Document ID is required",
         });
       }
 

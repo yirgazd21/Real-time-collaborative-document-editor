@@ -72,6 +72,14 @@ const CustomTableCell = TableCell.extend({
   },
 });
 
+// Memoized Editor Content component to prevent React Virtual DOM reconciliation crashes with Tiptap DOM mutations
+const MemoizedEditorContent = React.memo(
+  ({ editor }) => {
+    return <EditorContent editor={editor} className="w-full" />;
+  },
+  (prev, next) => prev.editor === next.editor
+);
+
 export const EditorPage = () => {
   const { id: documentId } = useParams();
   const navigate = useNavigate();
@@ -95,6 +103,7 @@ export const EditorPage = () => {
 
   const isRemoteChange = useRef(false);
   const typingTimeoutRef = useRef(null);
+  const saveDebounceRef = useRef(null);
 
   // Initialize Tiptap Editor with Extensions
   const editor = useEditor({
@@ -146,10 +155,14 @@ export const EditorPage = () => {
         return;
       }
 
+      // Ignore programmatic updates when editor is not actively focused by user
+      if (!editor.isFocused) {
+        return;
+      }
+
       setSaveStatus("Saving...");
       const htmlContent = editor.getHTML();
 
-      // Emit live typing indicator event over Socket.IO
       if (socket && isConnected) {
         socket.emit("typing", { documentId, isTyping: true });
 
@@ -165,12 +178,27 @@ export const EditorPage = () => {
           title,
         });
 
-        // Trigger real-time auto-save to MongoDB
-        socket.emit("save-document", {
-          documentId,
-          content: htmlContent,
-          title,
-        });
+        // Debounce database auto-save to MongoDB by 800ms
+        if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+        saveDebounceRef.current = setTimeout(() => {
+          socket.emit("save-document", {
+            documentId,
+            content: htmlContent,
+            title,
+          });
+        }, 800);
+      } else {
+        // Fallback REST API save if socket disconnected
+        if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+        saveDebounceRef.current = setTimeout(async () => {
+          try {
+            await docService.updateDocument(documentId, { content: htmlContent, title });
+            setSaveStatus("Saved");
+          } catch (err) {
+            console.error("REST save error:", err);
+            setSaveStatus("Save error");
+          }
+        }, 1000);
       }
     },
   });
@@ -183,11 +211,6 @@ export const EditorPage = () => {
         setDocData(data.document);
         setUserAccessLevel(data.userAccessLevel || "viewer");
         setTitle(data.document.title || "Untitled Document");
-
-        if (editor && data.document.content) {
-          isRemoteChange.current = true;
-          editor.commands.setContent(data.document.content);
-        }
       } catch (err) {
         console.error("Error loading document:", err);
       } finally {
@@ -198,13 +221,25 @@ export const EditorPage = () => {
     if (documentId) {
       loadDocument();
     }
-  }, [documentId, editor]);
+  }, [documentId]);
 
-  // Configure Editor Read-Only Permissions
+  // Sync Initial Document Content to Editor when Editor or Data is ready
   useEffect(() => {
-    if (editor) {
+    if (editor && docData && !editor.isDestroyed) {
+      const currentHTML = editor.getHTML();
+      if (!currentHTML || currentHTML === "<p></p>") {
+        isRemoteChange.current = true;
+        editor.commands.setContent(docData.content || "", false);
+      }
+    }
+  }, [editor, docData]);
+
+  // Configure Editor Read-Only vs Edit Permissions dynamically
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
       const canEdit =
         userAccessLevel === "owner" || userAccessLevel === "editor";
+      isRemoteChange.current = true;
       editor.setEditable(canEdit);
     }
   }, [userAccessLevel, editor]);
@@ -234,12 +269,16 @@ export const EditorPage = () => {
 
     // Listen for real-time document edit & title broadcasting from other users
     const handleReceiveChanges = ({ content, title: newTitle }) => {
-      if (editor && content !== undefined) {
-        isRemoteChange.current = true;
-        editor.commands.setContent(content, false);
-      }
       if (newTitle !== undefined) {
         setTitle(newTitle);
+      }
+
+      if (editor && !editor.isDestroyed && content !== undefined) {
+        const currentHTML = editor.getHTML();
+        if (currentHTML !== content) {
+          isRemoteChange.current = true;
+          editor.commands.setContent(content, false);
+        }
       }
     };
 
@@ -261,16 +300,23 @@ export const EditorPage = () => {
       );
     };
 
+    const handleSaveError = (data) => {
+      console.error("Socket save error:", data);
+      setSaveStatus("Error saving");
+    };
+
     socket.on("presence-update", handlePresence);
     socket.on("user-typing", handleUserTyping);
     socket.on("receive-changes", handleReceiveChanges);
     socket.on("save-success", handleSaveSuccess);
+    socket.on("save-error", handleSaveError);
 
     return () => {
       socket.off("presence-update", handlePresence);
       socket.off("user-typing", handleUserTyping);
       socket.off("receive-changes", handleReceiveChanges);
       socket.off("save-success", handleSaveSuccess);
+      socket.off("save-error", handleSaveError);
       socket.emit("leave-document");
     };
   }, [socket, isConnected, documentId, editor, user]);
@@ -500,20 +546,22 @@ export const EditorPage = () => {
       <div className="flex-1 flex items-start justify-center gap-6 max-w-7xl w-full mx-auto p-4 sm:p-6">
         {/* Main Partitioned Word-Style Sheet Canvas */}
         <main className="flex-1 flex flex-col items-center max-w-4xl w-full">
-          {!canEdit && (
-            <div className="w-full mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs flex items-center gap-2">
-              <Lock className="w-4 h-4" />
-              <span>Read-Only Mode. You have viewer permissions for this document.</span>
-            </div>
-          )}
+          {/* Static Banners Container */}
+          <div className="w-full space-y-2 mb-3">
+            {!canEdit && (
+              <div className="w-full p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                <span>Read-Only Mode. You have viewer permissions for this document.</span>
+              </div>
+            )}
 
-          {/* Live Mobile Typing Indicator */}
-          {typingList.length > 0 && (
-            <div className="w-full md:hidden mb-3 p-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-xl text-xs flex items-center gap-2">
-              <Edit3 className="w-3.5 h-3.5 animate-bounce" />
-              <span>{typingList.join(", ")} editing...</span>
-            </div>
-          )}
+            {typingList.length > 0 && (
+              <div className="w-full md:hidden p-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-xl text-xs flex items-center gap-2">
+                <Edit3 className="w-3.5 h-3.5 animate-bounce" />
+                <span>{typingList.join(", ")} editing...</span>
+              </div>
+            )}
+          </div>
 
           {/* Image Floating Toolbar */}
           <ImageBubbleMenu editor={editor} onOpenCrop={(src) => setCropImageSrc(src)} />
@@ -526,8 +574,8 @@ export const EditorPage = () => {
             className="w-full flex justify-center transition-transform duration-100 ease-out origin-top"
             style={{ transform: `scale(${zoomLevel})` }}
           >
-            <div className="word-document-page w-full min-h-[850px] rounded-2xl  p-8 sm:p-12 transition-all">
-              <EditorContent editor={editor} className="w-full" />
+            <div className="word-document-page w-full min-h-[850px] rounded-2xl p-8 sm:p-12 transition-all">
+              <MemoizedEditorContent editor={editor} />
             </div>
           </div>
 
