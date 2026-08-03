@@ -5,10 +5,15 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExtension from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
+import Placeholder from "@tiptap/extension-placeholder";
 import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableHeader from "@tiptap/extension-table-header";
+import TableCell from "@tiptap/extension-table-cell";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { PaginationPlus } from "tiptap-pagination-plus";
@@ -30,6 +35,7 @@ import { CommentSidebar } from "../features/editor/CommentSidebar";
 import { ShareModal } from "../features/dashboard/ShareModal";
 import { ImageBubbleMenu } from "../features/editor/ImageBubbleMenu";
 import { ImageCropModal } from "../features/editor/ImageCropModal";
+import { TableBubbleMenu } from "../features/editor/TableBubbleMenu";
 
 import {
   ArrowLeft,
@@ -45,6 +51,27 @@ import {
   Moon,
 } from "lucide-react";
 
+const CustomTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      backgroundColor: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-background-color'),
+        renderHTML: attributes => {
+          if (!attributes.backgroundColor) {
+            return {}
+          }
+          return {
+            'data-background-color': attributes.backgroundColor,
+            style: `background-color: ${attributes.backgroundColor}`,
+          }
+        },
+      },
+    }
+  },
+});
+
 export const EditorPage = () => {
   const { id: documentId } = useParams();
   const navigate = useNavigate();
@@ -52,7 +79,7 @@ export const EditorPage = () => {
   const { socket, isConnected } = useSocket();
   const { theme, toggleTheme } = useTheme();
 
-  const [document, setDocument] = useState(null);
+  const [docData, setDocData] = useState(null);
   const [userAccessLevel, setUserAccessLevel] = useState("viewer");
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(true);
@@ -64,6 +91,7 @@ export const EditorPage = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const isRemoteChange = useRef(false);
   const typingTimeoutRef = useRef(null);
@@ -82,6 +110,16 @@ export const EditorPage = () => {
       Highlight.configure({
         multicolor: true,
       }),
+      Placeholder.configure({
+        placeholder: "Write here...",
+        emptyEditorClass: "is-editor-empty",
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      CustomTableCell,
       Image.configure({
         inline: true,
         allowBase64: true,
@@ -142,7 +180,7 @@ export const EditorPage = () => {
     const loadDocument = async () => {
       try {
         const data = await docService.getDocumentById(documentId);
-        setDocument(data.document);
+        setDocData(data.document);
         setUserAccessLevel(data.userAccessLevel || "viewer");
         setTitle(data.document.title || "Untitled Document");
 
@@ -211,7 +249,7 @@ export const EditorPage = () => {
       if (data.title !== undefined) {
         setTitle(data.title);
       }
-      setDocument((prev) =>
+      setDocData((prev) =>
         prev
           ? {
             ...prev,
@@ -257,6 +295,22 @@ export const EditorPage = () => {
       });
     }
   };
+
+  // Zoom functionality (Ctrl + Scroll)
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault(); // Prevent browser native zoom
+        setZoomLevel((prev) => {
+          const delta = e.deltaY > 0 ? -0.1 : 0.1;
+          return Math.max(0.5, Math.min(3, prev + delta));
+        });
+      }
+    };
+    
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, []);
 
   // Export Handlers
   const handleExportPDF = () => {
@@ -313,9 +367,9 @@ export const EditorPage = () => {
 
   const canEdit = userAccessLevel === "owner" || userAccessLevel === "editor";
   const typingList = Array.from(typingUsers);
-  const lastModifier = document?.lastModifiedBy?.name || document?.owner?.name || "Someone";
-  const lastModifiedTime = document?.updatedAt
-    ? formatDistanceToNow(new Date(document.updatedAt), { addSuffix: true })
+  const lastModifier = docData?.lastModifiedBy?.name || docData?.owner?.name || "Someone";
+  const lastModifiedTime = docData?.updatedAt
+    ? formatDistanceToNow(new Date(docData.updatedAt), { addSuffix: true })
     : "recently";
 
   return (
@@ -463,10 +517,18 @@ export const EditorPage = () => {
 
           {/* Image Floating Toolbar */}
           <ImageBubbleMenu editor={editor} onOpenCrop={(src) => setCropImageSrc(src)} />
+          
+          {/* Table Floating Toolbar */}
+          <TableBubbleMenu editor={editor} />
 
           {/* Paginated Word Document Sheet */}
-          <div className="word-document-page w-full min-h-[850px] rounded-2xl  p-8 sm:p-12 transition-all">
-            <EditorContent editor={editor} />
+          <div 
+            className="w-full flex justify-center transition-transform duration-100 ease-out origin-top"
+            style={{ transform: `scale(${zoomLevel})` }}
+          >
+            <div className="word-document-page w-full min-h-[850px] rounded-2xl  p-8 sm:p-12 transition-all">
+              <EditorContent editor={editor} className="w-full" />
+            </div>
           </div>
 
         </main>
@@ -491,7 +553,7 @@ export const EditorPage = () => {
           documentId={documentId}
           userAccessLevel={userAccessLevel}
           onRestoreSuccess={(restoredDoc) => {
-            setDocument(restoredDoc);
+            setDocData(restoredDoc);
             setTitle(restoredDoc.title);
             if (editor && restoredDoc.content) {
               isRemoteChange.current = true;
@@ -513,10 +575,10 @@ export const EditorPage = () => {
       <ShareModal
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
-        document={document}
+        document={docData}
         onShare={async (shareData) => {
           const res = await docService.shareDocument(documentId, shareData);
-          setDocument(res.document);
+          setDocData(res.document);
         }}
       />
     </div>

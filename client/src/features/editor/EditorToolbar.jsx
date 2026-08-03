@@ -32,6 +32,7 @@ import {
   Hash,
   Minus,
   Plus,
+  Table as TableIcon,
 } from "lucide-react";
 
 export const EditorToolbar = ({
@@ -292,7 +293,18 @@ export const EditorToolbar = ({
           </button>
         </div>
 
-        <div className="h-5 w-px bg-slate-700/40 mx-1" />
+        <div className="w-px h-6 bg-slate-700/50 hidden md:block"></div>
+
+        {/* Table Button */}
+        <button
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          className="p-1.5 sm:p-2 rounded-xl transition-all glass-panel hover:bg-slate-800/30 hidden sm:block"
+          title="Insert Table (3x3)"
+        >
+          <TableIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
+        </button>
+
+        <div className="w-px h-6 bg-slate-700/50 hidden md:block"></div>
 
         {/* Text Formats (Bold, Italic, Underline, Strikethrough) */}
         <button
