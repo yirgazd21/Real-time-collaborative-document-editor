@@ -8,6 +8,29 @@ const roomPresenceMap = new Map();
 const roomLiveContentMap = new Map();
 
 /**
+ * Helper to evaluate if document content has important structural changes (images, tables, >200 chars edit)
+ */
+const hasImportantStructuralChange = (oldContent = "", newContent = "") => {
+  const oldStr = typeof oldContent === "string" ? oldContent : JSON.stringify(oldContent);
+  const newStr = typeof newContent === "string" ? newContent : JSON.stringify(newContent);
+
+  // New images inserted
+  const oldImages = (oldStr.match(/<img/g) || []).length;
+  const newImages = (newStr.match(/<img/g) || []).length;
+  if (newImages > oldImages) return true;
+
+  // New tables inserted
+  const oldTables = (oldStr.match(/<table/g) || []).length;
+  const newTables = (newStr.match(/<table/g) || []).length;
+  if (newTables > oldTables) return true;
+
+  // Substantial content change (more than 200 characters added/deleted)
+  if (Math.abs(newStr.length - oldStr.length) > 200) return true;
+
+  return false;
+};
+
+/**
  * Socket.IO Handler for Document Real-time Collaboration & Presence
  * @param {import("socket.io").Server} io - Socket.IO Server instance
  * @param {import("socket.io").Socket} socket - Authenticated socket connection
@@ -132,7 +155,7 @@ module.exports = (io, socket) => {
   });
 
   /**
-   * Handle real-time auto-saving of document content to MongoDB
+   * Handle real-time auto-saving of document content to MongoDB & Smart Revision Snapshotting
    */
   socket.on("save-document", async ({ documentId, content, title }) => {
     try {
@@ -161,17 +184,40 @@ module.exports = (io, socket) => {
         title: document.title,
       });
 
-      // Auto-create version history revision snapshot if last snapshot was > 10 minutes ago
-      const TEN_MINUTES = 10 * 60 * 1000;
+      // SMART REVISION CREATION STRATEGY:
+      // 1. Initial Document Revision
+      // 2. Periodic Revision: Every 10 minutes of active editing
+      // 3. Structural Change Revision: Added images, tables, or >200 chars edit (after at least 3 minutes)
       const lastRevision = await Revision.findOne({ documentId: document._id }).sort({ createdAt: -1 });
+      const TEN_MINUTES = 10 * 60 * 1000;
+      const THREE_MINUTES = 3 * 60 * 1000;
+      const now = Date.now();
+      const timeSinceLast = lastRevision ? now - new Date(lastRevision.createdAt).getTime() : Infinity;
 
-      if (!lastRevision || (Date.now() - new Date(lastRevision.createdAt).getTime() > TEN_MINUTES)) {
+      let shouldCreateRevision = false;
+      let revisionName = "Auto-saved Revision";
+
+      if (!lastRevision) {
+        shouldCreateRevision = true;
+        revisionName = "Initial Version";
+      } else if (timeSinceLast >= TEN_MINUTES) {
+        shouldCreateRevision = true;
+        revisionName = "Periodic Auto-save (10m)";
+      } else if (
+        timeSinceLast >= THREE_MINUTES &&
+        hasImportantStructuralChange(lastRevision.content, document.content)
+      ) {
+        shouldCreateRevision = true;
+        revisionName = "Major Edit (Images / Tables / Structure)";
+      }
+
+      if (shouldCreateRevision) {
         await Revision.create({
           documentId: document._id,
           content: document.content,
           title: document.title,
           createdBy: user._id,
-          versionName: "Auto-saved Revision",
+          versionName: revisionName,
         });
       }
 
@@ -184,14 +230,15 @@ module.exports = (io, socket) => {
         message: "Changes saved automatically",
       });
     } catch (err) {
+      console.error("Error saving document via socket:", err);
       socket.emit("save-error", { message: err.message });
     }
   });
 
   /**
-   * Handle explicit document room leave
+   * Handle explicit document room leave & Closing Revision Snapshot
    */
-  const handleLeaveDocument = () => {
+  const handleLeaveDocument = async () => {
     const documentId = socket.currentDocumentId;
     if (!documentId) return;
 
@@ -204,6 +251,30 @@ module.exports = (io, socket) => {
       if (roomUsers.size === 0) {
         roomPresenceMap.delete(documentId);
         roomLiveContentMap.delete(documentId);
+
+        // Smart Revision: Create Closing Snapshot when last user leaves if content changed
+        try {
+          const doc = await Document.findById(documentId);
+          const lastRevision = await Revision.findOne({ documentId }).sort({ createdAt: -1 });
+
+          if (doc && lastRevision) {
+            const timeSinceLast = Date.now() - new Date(lastRevision.createdAt).getTime();
+            if (
+              timeSinceLast > 60 * 1000 &&
+              (doc.content !== lastRevision.content || doc.title !== lastRevision.title)
+            ) {
+              await Revision.create({
+                documentId: doc._id,
+                content: doc.content,
+                title: doc.title,
+                createdBy: user._id,
+                versionName: "Session Closing Snapshot",
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Error creating session closing revision:", err);
+        }
       } else {
         const presenceList = Array.from(roomUsers.values());
         io.to(roomName).emit("presence-update", presenceList);
