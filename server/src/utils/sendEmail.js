@@ -14,15 +14,28 @@ const sendEmail = async (options) => {
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587", 10),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const isGmail = host.includes("gmail");
+
+  const transporterConfig = isGmail
+    ? {
+        service: "gmail",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      }
+    : {
+        host,
+        port: parseInt(process.env.SMTP_PORT || "587", 10),
+        secure: process.env.SMTP_PORT === "465" || process.env.SMTP_SECURE === "true",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      };
+
+  const transporter = nodemailer.createTransport(transporterConfig);
 
   const mailOptions = {
     from: process.env.EMAIL_FROM || `SyncWrite Support <${process.env.SMTP_USER}>`,
