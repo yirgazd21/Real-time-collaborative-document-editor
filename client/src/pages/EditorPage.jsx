@@ -419,127 +419,130 @@ const lastModifiedTime = docData?.updatedAt
 
 return (
   <div className="min-h-screen transition-colors flex flex-col">
-    {/* Top Editor Header */}
-    <header className="sticky top-0 z-40 glass-panel border-b border-slate-700/50 px-4 py-2.5 flex items-center justify-between gap-4">
-      {/* Left: Back, Document Title & Last Modifier Badge */}
-      <div className="flex items-center gap-3">
-        <Link
-          to="/"
-          className="p-2 rounded-xl opacity-70 hover:opacity-100 hover:bg-slate-800/30 transition-colors"
-          title="Back to Dashboard"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-
-        <div>
-          <div className="flex items-center gap-2">
-            {canEdit ? (
-              <input
-                type="text"
-                value={title}
-                onChange={handleTitleChange}
-                placeholder="Untitled Document"
-                className="bg-transparent font-bold text-lg hover:bg-slate-800/20 focus:bg-slate-800/40 px-2 py-0.5 rounded-xl border border-transparent focus:border-indigo-500/50 focus:outline-none transition-all"
-              />
-            ) : (
-              <h1 className="font-bold text-lg px-2">{title}</h1>
-            )}
-
-            <Badge role={userAccessLevel} />
-
-            {/* Auto Save Status */}
-            <span className="hidden sm:flex items-center gap-1 text-xs opacity-80 glass-panel px-2.5 py-0.5 rounded-full font-mono">
-              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-              {saveStatus}
-            </span>
-          </div>
-
-          {/* Last Modified By Indicator */}
-          <p className="text-[11px] opacity-70 px-2 flex items-center gap-1.5 mt-0.5">
-            <UserCheck className="w-3 h-3 text-indigo-500" />
-            <span>
-              Last edited by <strong className="font-semibold">{lastModifier}</strong> {lastModifiedTime}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      {/* Right: Presence, Theme Toggle, Live Typing & Header Actions */}
-      <div className="flex items-center gap-3">
-        {/* Live Typing Preview Banner */}
-        {typingList.length > 0 && (
-          <div className="hidden md:flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-3 py-1 rounded-full text-xs font-medium animate-pulse">
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>{typingList.join(", ")} editing...</span>
-          </div>
-        )}
-
-        <PresenceAvatars presenceList={presenceList} currentUserId={user?._id} />
-
-        {/* Theme Switcher Toggle Button */}
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-xl glass-panel text-slate-300 hover:text-amber-400 transition-colors"
-          title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
-        >
-          {theme === "dark" ? (
-            <Sun className="w-4 h-4 text-amber-400" />
-          ) : (
-            <Moon className="w-4 h-4 text-indigo-600" />
-          )}
-        </button>
-
-        {/* Share Button */}
-        {canEdit && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsShareOpen(true)}
-            className="shadow-lg shadow-indigo-600/20"
+    {/* Sticky Top Bar Container (Header + Toolbar) */}
+    <div className="sticky top-0 z-40">
+      {/* Top Editor Header */}
+      <header className="glass-panel border-b border-slate-700/50 px-4 py-2.5 flex items-center justify-between gap-4">
+        {/* Left: Back, Document Title & Last Modifier Badge */}
+        <div className="flex items-center gap-3">
+          <Link
+            to="/"
+            className="p-2 rounded-xl opacity-70 hover:opacity-100 hover:bg-slate-800/30 transition-colors"
+            title="Back to Dashboard"
           >
-            <Share2 className="w-4 h-4" /> Share
-          </Button>
-        )}
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
 
-        {/* History Panel Toggle */}
-        <button
-          onClick={() => {
-            setIsHistoryOpen(!isHistoryOpen);
-            if (!isHistoryOpen) setIsCommentsOpen(false);
-          }}
-          className={`p-2 rounded-xl border transition-colors ${isHistoryOpen
-            ? "bg-indigo-600 border-indigo-500 text-white"
-            : "glass-panel hover:bg-slate-800/30"
-            }`}
-          title="Version History"
-        >
-          <History className="w-4 h-4" />
-        </button>
+          <div>
+            <div className="flex items-center gap-2">
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={title}
+                  onChange={handleTitleChange}
+                  placeholder="Untitled Document"
+                  className="bg-transparent font-bold text-lg hover:bg-slate-800/20 focus:bg-slate-800/40 px-2 py-0.5 rounded-xl border border-transparent focus:border-indigo-500/50 focus:outline-none transition-all"
+                />
+              ) : (
+                <h1 className="font-bold text-lg px-2">{title}</h1>
+              )}
 
-        {/* Comments Panel Toggle */}
-        <button
-          onClick={() => {
-            setIsCommentsOpen(!isCommentsOpen);
-            if (!isCommentsOpen) setIsHistoryOpen(false);
-          }}
-          className={`p-2 rounded-xl border transition-colors ${isCommentsOpen
-            ? "bg-indigo-600 border-indigo-500 text-white"
-            : "glass-panel hover:bg-slate-800/30"
-            }`}
-          title="Comments Thread"
-        >
-          <MessageSquare className="w-4 h-4" />
-        </button>
-      </div>
-    </header>
+              <Badge role={userAccessLevel} />
 
-    {/* Editor Formatting Toolbar */}
-    <EditorToolbar
-      editor={editor}
-      onExportPDF={handleExportPDF}
-      onExportWord={handleExportWord}
-      onExportMarkdown={handleExportMarkdown}
-    />
+              {/* Auto Save Status */}
+              <span className="hidden sm:flex items-center gap-1 text-xs opacity-80 glass-panel px-2.5 py-0.5 rounded-full font-mono">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                {saveStatus}
+              </span>
+            </div>
+
+            {/* Last Modified By Indicator */}
+            <p className="text-[11px] opacity-70 px-2 flex items-center gap-1.5 mt-0.5">
+              <UserCheck className="w-3 h-3 text-indigo-500" />
+              <span>
+                Last edited by <strong className="font-semibold">{lastModifier}</strong> {lastModifiedTime}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Right: Presence, Theme Toggle, Live Typing & Header Actions */}
+        <div className="flex items-center gap-3">
+          {/* Live Typing Preview Banner */}
+          {typingList.length > 0 && (
+            <div className="hidden md:flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-3 py-1 rounded-full text-xs font-medium animate-pulse">
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>{typingList.join(", ")} editing...</span>
+            </div>
+          )}
+
+          <PresenceAvatars presenceList={presenceList} currentUserId={user?._id} />
+
+          {/* Theme Switcher Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl glass-panel text-slate-300 hover:text-amber-400 transition-colors"
+            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-600" />
+            )}
+          </button>
+
+          {/* Share Button */}
+          {canEdit && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsShareOpen(true)}
+              className="shadow-lg shadow-indigo-600/20"
+            >
+              <Share2 className="w-4 h-4" /> Share
+            </Button>
+          )}
+
+          {/* History Panel Toggle */}
+          <button
+            onClick={() => {
+              setIsHistoryOpen(!isHistoryOpen);
+              if (!isHistoryOpen) setIsCommentsOpen(false);
+            }}
+            className={`p-2 rounded-xl border transition-colors ${isHistoryOpen
+              ? "bg-indigo-600 border-indigo-500 text-white"
+              : "glass-panel hover:bg-slate-800/30"
+              }`}
+            title="Version History"
+          >
+            <History className="w-4 h-4" />
+          </button>
+
+          {/* Comments Panel Toggle */}
+          <button
+            onClick={() => {
+              setIsCommentsOpen(!isCommentsOpen);
+              if (!isCommentsOpen) setIsHistoryOpen(false);
+            }}
+            className={`p-2 rounded-xl border transition-colors ${isCommentsOpen
+              ? "bg-indigo-600 border-indigo-500 text-white"
+              : "glass-panel hover:bg-slate-800/30"
+              }`}
+            title="Comments Thread"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* Editor Formatting Toolbar */}
+      <EditorToolbar
+        editor={editor}
+        onExportPDF={handleExportPDF}
+        onExportWord={handleExportWord}
+        onExportMarkdown={handleExportMarkdown}
+      />
+    </div>
 
     {/* Split Workspace Layout */}
     <div className="flex-1 flex items-start justify-center gap-6 max-w-7xl w-full mx-auto p-4 sm:p-6">

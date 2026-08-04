@@ -169,7 +169,7 @@ export const EditorToolbar = ({
   return (
     <div
       ref={toolbarRef}
-      className="sticky top-14 z-30 glass-panel border-b border-slate-700/40 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shadow-md"
+      className="relative z-30 glass-panel border-b border-slate-700/40 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shadow-md"
     >
 
 
