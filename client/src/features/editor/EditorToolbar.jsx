@@ -165,6 +165,44 @@ export const EditorToolbar = ({
     { label: "Lavender", color: "#e9d5ff" },
   ];
 
+  // Bullet List style change handler
+  const handleBulletListStyle = (styleType) => {
+    if (editor.isActive("bulletList")) {
+      const currentStyle = editor.getAttributes("bulletList").listStyleType || "disc";
+      if (currentStyle === styleType) {
+        editor.chain().focus().toggleBulletList().run();
+      } else {
+        editor.chain().focus().updateAttributes("bulletList", { listStyleType: styleType }).run();
+      }
+    } else {
+      editor.chain().focus().toggleBulletList().updateAttributes("bulletList", { listStyleType: styleType }).run();
+    }
+    setBulletOpen(false);
+  };
+
+  // Ordered List style change handler
+  const handleOrderedListStyle = (styleType) => {
+    if (editor.isActive("orderedList")) {
+      const currentStyle = editor.getAttributes("orderedList").listStyleType || "decimal";
+      if (currentStyle === styleType) {
+        editor.chain().focus().toggleOrderedList().run();
+      } else {
+        editor.chain().focus().updateAttributes("orderedList", { listStyleType: styleType }).run();
+      }
+    } else {
+      editor.chain().focus().toggleOrderedList().updateAttributes("orderedList", { listStyleType: styleType }).run();
+    }
+    setNumberOpen(false);
+  };
+
+  const currentBulletStyle = editor.isActive("bulletList")
+    ? editor.getAttributes("bulletList").listStyleType || "disc"
+    : null;
+
+  const currentOrderedStyle = editor.isActive("orderedList")
+    ? editor.getAttributes("orderedList").listStyleType || "decimal"
+    : null;
+
   return (
     <div
       ref={toolbarRef}
@@ -492,31 +530,28 @@ export const EditorToolbar = ({
           {bulletOpen && (
             <div className="absolute left-0 mt-2 w-44 glass-panel rounded-2xl p-1.5 shadow-2xl border border-slate-700/60 z-50 text-xs font-medium">
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleBulletList().run();
-                  setBulletOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleBulletListStyle("disc")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentBulletStyle === "disc" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <span className="font-bold text-base">•</span>
                 <span>Default Bullet (Disc)</span>
               </button>
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleBulletList().run();
-                  setBulletOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleBulletListStyle("circle")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentBulletStyle === "circle" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <Circle className="w-3 h-3" />
                 <span>Circle Bullet (◦)</span>
               </button>
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleBulletList().run();
-                  setBulletOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleBulletListStyle("square")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentBulletStyle === "square" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <Square className="w-3 h-3" />
                 <span>Square Bullet (▪)</span>
@@ -551,51 +586,46 @@ export const EditorToolbar = ({
           {numberOpen && (
             <div className="absolute left-0 mt-2 w-48 glass-panel rounded-2xl p-1.5 shadow-2xl border border-slate-700/60 z-50 text-xs font-medium">
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleOrderedList().run();
-                  setNumberOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleOrderedListStyle("decimal")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentOrderedStyle === "decimal" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <Hash className="w-3.5 h-3.5 text-indigo-400" />
                 <span> Number (1, 2, 3...)</span>
               </button>
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleOrderedList().run();
-                  setNumberOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleOrderedListStyle("lower-alpha")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentOrderedStyle === "lower-alpha" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <span className="font-mono font-bold text-xs text-indigo-400">a.b.c</span>
                 <span>Lowercase  (a, b, c)</span>
               </button>
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleOrderedList().run();
-                  setNumberOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleOrderedListStyle("upper-alpha")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentOrderedStyle === "upper-alpha" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <span className="font-mono font-bold text-xs text-indigo-400">A.B.C</span>
                 <span>Uppercase  (A, B, C)</span>
               </button>
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleOrderedList().run();
-                  setNumberOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleOrderedListStyle("lower-roman")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentOrderedStyle === "lower-roman" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <span className="font-mono font-bold text-xs text-indigo-400">i.ii</span>
                 <span> roman (i, ii, iii)</span>
               </button>
               <button
-                onClick={() => {
-                  editor.chain().focus().toggleOrderedList().run();
-                  setNumberOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
+                onClick={() => handleOrderedListStyle("upper-roman")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
+                  currentOrderedStyle === "upper-roman" ? "bg-indigo-600 text-white font-semibold" : "hover:bg-indigo-600/20"
+                }`}
               >
                 <span className="font-mono font-bold text-xs text-indigo-400">I.II</span>
                 <span> ROMAN (I, II, III)</span>

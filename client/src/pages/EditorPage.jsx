@@ -18,6 +18,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { PaginationPlus } from "tiptap-pagination-plus";
 import { FontSize } from "../features/editor/FontSize";
+import { CustomBulletList, CustomOrderedList } from "../features/editor/CustomLists";
 import html2pdf from "html2pdf.js";
 import { formatDistanceToNow } from "date-fns";
 
@@ -111,7 +112,11 @@ export const EditorPage = () => {
       StarterKit.configure({
         history: true,
         horizontalRule: false,
+        bulletList: false,
+        orderedList: false,
       }),
+      CustomBulletList,
+      CustomOrderedList,
       Underline,
       TextStyle,
       FontSize,

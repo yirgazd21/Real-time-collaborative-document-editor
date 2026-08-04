@@ -169,7 +169,7 @@ export const CommentSidebar = ({
   });
 
   return (
-    <aside className="w-80 lg:w-96 flex-shrink-0 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 flex flex-col justify-between transition-colors animate-in fade-in slide-in-from-right-4 duration-200 text-slate-900 dark:text-white">
+    <aside className="w-80 lg:w-96 flex-shrink-0 bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 p-5 flex flex-col justify-between transition-colors animate-in fade-in slide-in-from-right-4 duration-200 text-slate-900 dark:text-white">
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
