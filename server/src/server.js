@@ -82,7 +82,7 @@ server.listen(PORT, () => {
   console.log(`
   =======================================================
   🚀 SYNCWRITE SERVER READY ON PORT: ${PORT}
-  🌍 CORS CLIENT ORIGIN: ${CLIENT_URL}
+  🌍 CORS CLIENT ORIGIN: ${process.env.CLIENT_URL || "http://localhost:5173"}
   ⚡ SOCKET.IO WEBSOCKET ENGINE ONLINE
   =======================================================
   `);
