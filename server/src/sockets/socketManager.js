@@ -3,6 +3,15 @@ const User = require("../models/User");
 const { verifyAccessToken } = require("../utils/jwt");
 const registerDocHandlers = require("./docHandler");
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.trim().replace(/\/+$/, "") : "";
+  if (clientUrl && origin === clientUrl) return true;
+  if (origin === "http://localhost:5173" || origin === "http://localhost:3000") return true;
+  if (/\.vercel\.app$/.test(origin)) return true;
+  return false;
+};
+
 /**
  * Initializes and attaches Socket.IO to the HTTP server
  * @param {import("http").Server} httpServer - Node HTTP server instance
@@ -11,7 +20,13 @@ const registerDocHandlers = require("./docHandler");
 const initSocketServer = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:5173",
+      origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Socket CORS blocked for origin: ${origin}`));
+        }
+      },
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
     },

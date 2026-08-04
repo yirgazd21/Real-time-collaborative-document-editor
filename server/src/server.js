@@ -22,11 +22,25 @@ connectDB();
 
 const app = express();
 
-// CORS Configuration
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+// Smart CORS Configuration (Supports Vercel deployments & localhost)
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // Allow server-to-server or non-browser tools like Postman
+  const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.trim().replace(/\/+$/, "") : "";
+  if (clientUrl && origin === clientUrl) return true;
+  if (origin === "http://localhost:5173" || origin === "http://localhost:3000") return true;
+  if (/\.vercel\.app$/.test(origin)) return true; // Dynamically allow all Vercel deployment previews
+  return false;
+};
+
 app.use(
   cors({
-    origin: CLIENT_URL,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
     credentials: true,
   })
 );
