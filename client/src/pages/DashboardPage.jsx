@@ -152,11 +152,11 @@ export const DashboardPage = () => {
       <Navbar onSearchChange={setSearchQuery} searchValue={searchQuery} />
 
       {/* Main Google Docs Style Full-Width Container */}
-      <div className="flex-1 flex w-full">
+      <div className="flex-1 flex flex-col md:flex-row w-full">
         
-        {/* GOOGLE DOCS STYLE FLUSH-LEFT SIDEBAR */}
-        <aside className="w-64 sm:w-72 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-6 flex flex-col justify-between">
-          <div className="space-y-6">
+        {/* GOOGLE DOCS STYLE RESPONSIVE SIDEBAR */}
+        <aside className="w-full md:w-64 lg:w-72 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4 md:space-y-6 flex flex-col justify-between">
+          <div className="space-y-4 md:space-y-6">
             {/* Standard Google Docs Blank Document Action Button */}
             <div>
               <button
@@ -169,10 +169,10 @@ export const DashboardPage = () => {
             </div>
 
             {/* Main Navigation Menu */}
-            <nav className="space-y-1">
+            <nav className="flex flex-row md:flex-col overflow-x-auto gap-2 md:gap-1 pb-2 md:pb-0 scrollbar-none">
               <button
                 onClick={() => setActiveTab("all")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 min-w-[140px] md:min-w-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                   activeTab === "all"
                     ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -185,20 +185,20 @@ export const DashboardPage = () => {
 
               <button
                 onClick={() => setActiveTab("recent")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 min-w-[140px] md:min-w-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                   activeTab === "recent"
                     ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Recent Documents</span>
+                <span>Recent Docs</span>
                 <span className="ml-auto text-[11px] opacity-70">({recentDocsList.length})</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("owned")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 min-w-[140px] md:min-w-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                   activeTab === "owned"
                     ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -211,7 +211,7 @@ export const DashboardPage = () => {
 
               <button
                 onClick={() => setActiveTab("shared")}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 min-w-[140px] md:min-w-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                   activeTab === "shared"
                     ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 font-extrabold"
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"

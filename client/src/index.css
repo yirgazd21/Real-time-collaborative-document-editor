@@ -375,14 +375,13 @@ ul[data-type="taskList"] li>div {
 
 
 
-.word-document-page{
-    width:full;
-    height:full;
-    min-height:1024px;
-    margin:20px auto;
+.word-document-page {
+    width: 100%;
+    max-width: 794px;
+    height: 100%;
+    min-height: 1024px;
+    margin: 20px auto;
     padding: 20px;
-
-    background:#fff;
-
-    box-sizing:border-box;
+    background: #fff;
+    box-sizing: border-box;
 }
