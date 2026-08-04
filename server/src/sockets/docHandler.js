@@ -8,21 +8,11 @@ const roomPresenceMap = new Map();
 const roomLiveContentMap = new Map();
 
 /**
- * Helper to evaluate if document content has important structural changes (images, tables, >200 chars edit)
+ * Helper to evaluate if document content has substantial changes (>200 chars edit)
  */
 const hasImportantStructuralChange = (oldContent = "", newContent = "") => {
   const oldStr = typeof oldContent === "string" ? oldContent : JSON.stringify(oldContent);
   const newStr = typeof newContent === "string" ? newContent : JSON.stringify(newContent);
-
-  // New images inserted
-  const oldImages = (oldStr.match(/<img/g) || []).length;
-  const newImages = (newStr.match(/<img/g) || []).length;
-  if (newImages > oldImages) return true;
-
-  // New tables inserted
-  const oldTables = (oldStr.match(/<table/g) || []).length;
-  const newTables = (newStr.match(/<table/g) || []).length;
-  if (newTables > oldTables) return true;
 
   // Substantial content change (more than 200 characters added/deleted)
   if (Math.abs(newStr.length - oldStr.length) > 200) return true;

@@ -22,17 +22,12 @@ import {
   ChevronDown,
   Palette,
   Highlighter,
-  Image as ImageIcon,
-  Link2,
-  Upload,
-  FilePlus,
   Type,
   Circle,
   Square,
   Hash,
   Minus,
   Plus,
-  Table as TableIcon,
 } from "lucide-react";
 
 export const EditorToolbar = ({
@@ -46,13 +41,11 @@ export const EditorToolbar = ({
   const [numberOpen, setNumberOpen] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
   const [highlightOpen, setHighlightOpen] = useState(false);
-  const [imageOpen, setImageOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
 
   const [fontSize, setFontSize] = useState("16");
 
   const toolbarRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   // Sync current font size from editor mark
   useEffect(() => {
@@ -73,7 +66,6 @@ export const EditorToolbar = ({
         setNumberOpen(false);
         setColorOpen(false);
         setHighlightOpen(false);
-        setImageOpen(false);
         setDownloadOpen(false);
       }
     };
@@ -112,35 +104,6 @@ export const EditorToolbar = ({
     }
 
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  };
-
-  // Image from URL
-  const addImageFromUrl = () => {
-    const url = window.prompt("Enter Image URL:");
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  };
-
-  // Image from Local File Upload
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64Src = event.target?.result;
-        if (base64Src) {
-          editor.chain().focus().setImage({ src: base64Src }).run();
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-    e.target.value = "";
-  };
-
-  // Insert Page Break at Cursor
-  const insertPageBreak = () => {
-    editor.chain().focus().setHorizontalRule().run();
   };
 
   // Curated Color Palettes
@@ -208,14 +171,7 @@ export const EditorToolbar = ({
       ref={toolbarRef}
       className="sticky top-14 z-30 glass-panel border-b border-slate-700/40 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shadow-md"
     >
-      {/* Hidden File Input for Image Upload */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileUpload}
-        accept="image/*"
-        className="hidden"
-      />
+
 
       {/* Formatting Tools Group */}
       <div className="flex flex-wrap items-center gap-1">
@@ -228,7 +184,6 @@ export const EditorToolbar = ({
               setNumberOpen(false);
               setColorOpen(false);
               setHighlightOpen(false);
-              setImageOpen(false);
               setDownloadOpen(false);
             }}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold opacity-80 hover:opacity-100 hover:bg-slate-500/10 transition-colors"
@@ -331,18 +286,7 @@ export const EditorToolbar = ({
           </button>
         </div>
 
-        <div className="w-px h-6 bg-slate-700/50 hidden md:block"></div>
 
-        {/* Table Button */}
-        <button
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          className="p-1.5 sm:p-2 rounded-xl transition-all glass-panel hover:bg-slate-800/30 hidden sm:block"
-          title="Insert Table (3x3)"
-        >
-          <TableIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
-        </button>
-
-        <div className="w-px h-6 bg-slate-700/50 hidden md:block"></div>
 
         {/* Text Formats (Bold, Italic, Underline, Strikethrough) */}
         <button
@@ -401,7 +345,6 @@ export const EditorToolbar = ({
               setBulletOpen(false);
               setNumberOpen(false);
               setHighlightOpen(false);
-              setImageOpen(false);
               setDownloadOpen(false);
             }}
             className="p-2 rounded-lg opacity-70 hover:opacity-100 hover:bg-slate-500/10 transition-colors"
@@ -456,7 +399,6 @@ export const EditorToolbar = ({
               setBulletOpen(false);
               setNumberOpen(false);
               setColorOpen(false);
-              setImageOpen(false);
               setDownloadOpen(false);
             }}
             className="p-2 rounded-lg opacity-70 hover:opacity-100 hover:bg-slate-500/10 transition-colors"
@@ -513,7 +455,6 @@ export const EditorToolbar = ({
               setNumberOpen(false);
               setColorOpen(false);
               setHighlightOpen(false);
-              setImageOpen(false);
               setDownloadOpen(false);
             }}
             className={`flex items-center gap-1 p-2 rounded-lg transition-colors ${
@@ -569,7 +510,6 @@ export const EditorToolbar = ({
               setBulletOpen(false);
               setColorOpen(false);
               setHighlightOpen(false);
-              setImageOpen(false);
               setDownloadOpen(false);
             }}
             className={`flex items-center gap-1 p-2 rounded-lg transition-colors ${
@@ -710,58 +650,7 @@ export const EditorToolbar = ({
           <LinkIcon className="w-4 h-4" />
         </button>
 
-        {/* Insert Image Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setImageOpen(!imageOpen);
-              setHeadingOpen(false);
-              setBulletOpen(false);
-              setNumberOpen(false);
-              setColorOpen(false);
-              setHighlightOpen(false);
-              setDownloadOpen(false);
-            }}
-            className="p-2 rounded-lg opacity-70 hover:opacity-100 hover:bg-slate-500/10 transition-colors"
-            title="Insert Image (From URL or Computer File)"
-          >
-            <ImageIcon className="w-4 h-4 text-emerald-400" />
-          </button>
 
-          {imageOpen && (
-            <div className="absolute left-0 mt-2 w-48 glass-panel rounded-2xl p-1.5 shadow-2xl border border-slate-700/60 z-50 text-xs font-medium">
-              <button
-                onClick={() => {
-                  addImageFromUrl();
-                  setImageOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
-              >
-                <Link2 className="w-4 h-4 text-indigo-400" />
-                <span>Insert Image from URL</span>
-              </button>
-              <button
-                onClick={() => {
-                  fileInputRef.current?.click();
-                  setImageOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-indigo-600 hover:text-white rounded-xl transition-colors"
-              >
-                <Upload className="w-4 h-4 text-emerald-400" />
-                <span>Upload Image File</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Insert Page Break Button */}
-        <button
-          onClick={insertPageBreak}
-          className="p-2 rounded-lg opacity-70 hover:opacity-100 hover:bg-slate-500/10 transition-colors"
-          title="Insert Page Break at Cursor (Ctrl+Enter)"
-        >
-          <FilePlus className="w-4 h-4 text-cyan-400" />
-        </button>
 
         <div className="h-5 w-px bg-slate-700/40 mx-1" />
 
@@ -794,7 +683,6 @@ export const EditorToolbar = ({
             setNumberOpen(false);
             setColorOpen(false);
             setHighlightOpen(false);
-            setImageOpen(false);
           }}
           className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-600/20 transition-all"
         >

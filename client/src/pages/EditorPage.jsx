@@ -9,11 +9,6 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
-import Image from "@tiptap/extension-image";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableHeader from "@tiptap/extension-table-header";
-import TableCell from "@tiptap/extension-table-cell";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { PaginationPlus } from "tiptap-pagination-plus";
@@ -34,9 +29,6 @@ import { PresenceAvatars } from "../features/editor/PresenceAvatars";
 import { HistoryDrawer } from "../features/editor/HistoryDrawer";
 import { CommentSidebar } from "../features/editor/CommentSidebar";
 import { ShareModal } from "../features/dashboard/ShareModal";
-import { ImageBubbleMenu } from "../features/editor/ImageBubbleMenu";
-import { ImageCropModal } from "../features/editor/ImageCropModal";
-import { TableBubbleMenu } from "../features/editor/TableBubbleMenu";
 
 import {
   ArrowLeft,
@@ -51,27 +43,6 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-
-const CustomTableCell = TableCell.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      backgroundColor: {
-        default: null,
-        parseHTML: element => element.getAttribute('data-background-color'),
-        renderHTML: attributes => {
-          if (!attributes.backgroundColor) {
-            return {}
-          }
-          return {
-            'data-background-color': attributes.backgroundColor,
-            style: `background-color: ${attributes.backgroundColor}`,
-          }
-        },
-      },
-    }
-  },
-});
 
 // Memoized Editor Content component to prevent React Virtual DOM reconciliation crashes with Tiptap DOM mutations
 const MemoizedEditorContent = React.memo(
@@ -99,7 +70,6 @@ export const EditorPage = () => {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [cropImageSrc, setCropImageSrc] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
 
   const isRemoteChange = useRef(false);
@@ -128,16 +98,6 @@ export const EditorPage = () => {
         placeholder: "Write here...",
         emptyEditorClass: "is-editor-empty",
       }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      CustomTableCell,
-      Image.configure({
-        inline: true,
-        allowBase64: true,
-      }),
       TaskList,
       TaskItem.configure({
         nested: true,
@@ -163,11 +123,6 @@ export const EditorPage = () => {
     onUpdate: ({ editor }) => {
       if (isRemoteChange.current) {
         isRemoteChange.current = false;
-        return;
-      }
-
-      // Ignore programmatic updates when editor is not actively focused by user
-      if (!editor.isFocused) {
         return;
       }
 
@@ -607,11 +562,7 @@ return (
           )}
         </div>
 
-        {/* Image Floating Toolbar */}
-        <ImageBubbleMenu editor={editor} onOpenCrop={(src) => setCropImageSrc(src)} />
 
-        {/* Table Floating Toolbar */}
-        <TableBubbleMenu editor={editor} />
 
         {/* Paginated Word Document Sheet */}
         <div
@@ -625,18 +576,7 @@ return (
 
       </main>
 
-      {/* Image Crop Modal */}
-      <ImageCropModal
-        isOpen={!!cropImageSrc}
-        onClose={() => setCropImageSrc(null)}
-        imageSrc={cropImageSrc}
-        onCropComplete={(base64) => {
-          if (editor) {
-            editor.chain().focus().setImage({ src: base64 }).run();
-          }
-          setCropImageSrc(null);
-        }}
-      />
+
 
       {/* Aligned Side Panels (Comments or Version History) */}
       <HistoryDrawer
