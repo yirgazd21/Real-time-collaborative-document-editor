@@ -41,6 +41,9 @@ const userSchema = new mongoose.Schema(
       enum: ["local", "google"],
       default: "local",
     },
+
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
   {
     timestamps: true,
@@ -49,6 +52,8 @@ const userSchema = new mongoose.Schema(
     toJSON: {
       transform(doc, ret) {
         delete ret.password;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordExpire;
         delete ret.__v;
         return ret;
       },
@@ -68,6 +73,21 @@ userSchema.pre("save", async function () {
 userSchema.methods.matchPassword = async function (candidatePassword) {
   if (!this.password) return false;
   return comparePassword(candidatePassword, this.password);
+};
+
+// Generate and hash password reset token (valid for 10 minutes)
+const crypto = require("crypto");
+userSchema.methods.getResetPasswordToken = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
 };
 
 // Find user by email

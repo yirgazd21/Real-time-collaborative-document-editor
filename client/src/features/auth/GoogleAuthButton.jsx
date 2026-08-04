@@ -47,7 +47,7 @@ export const GoogleAuthButton = ({ onSuccessRedirect = "/", onError }) => {
         theme="filled_dark"
         shape="pill"
         size="large"
-        width="100%"
+        width={380}
         text="continue_with"
       />
     </div>

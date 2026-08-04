@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { GoogleAuthButton } from "../features/auth/GoogleAuthButton";
 import { Button } from "../components/common/Button";
-import { FileText, User, Mail, Lock, AlertCircle, CheckCircle2, Sun, Moon } from "lucide-react";
+import { FileText, User, Mail, Lock, AlertCircle, CheckCircle2, Eye, EyeOff, Sun, Moon } from "lucide-react";
 
 export const RegisterPage = () => {
   const { register } = useAuth();
@@ -16,6 +16,7 @@ export const RegisterPage = () => {
     email: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -131,14 +132,26 @@ export const RegisterPage = () => {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3 w-4 h-4 opacity-50" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   required
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full glass-panel rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                  className="w-full glass-panel rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-indigo-500 transition-colors"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
 
               {/* Password Requirement hints */}
