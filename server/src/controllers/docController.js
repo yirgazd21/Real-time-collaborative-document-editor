@@ -38,7 +38,27 @@ const createDocument = async (req, res, next) => {
 const getDocuments = async (req, res, next) => {
   try {
     const userId = req.user._id;
+    const userEmail = req.user.email?.toLowerCase().trim();
     const { search } = req.query;
+
+    // Auto-claim any pending invites for this user's email
+    if (userEmail) {
+      const pendingDocs = await Document.find({
+        "pendingInvites.email": userEmail,
+      });
+      for (const pDoc of pendingDocs) {
+        const pMatch = pDoc.pendingInvites.find(
+          (pi) => pi.email && pi.email.toLowerCase() === userEmail
+        );
+        if (pMatch) {
+          pDoc.collaborators.push({ user: userId, role: pMatch.role });
+          pDoc.pendingInvites = pDoc.pendingInvites.filter(
+            (pi) => pi.email.toLowerCase() !== userEmail
+          );
+          await pDoc.save({ validateBeforeSave: false });
+        }
+      }
+    }
 
     const filter = {
       $or: [
@@ -131,77 +151,86 @@ const shareDocument = async (req, res, next) => {
     let invitedEmail = null;
 
     if (email) {
-      const targetUser = await User.findOne({ email: email.toLowerCase() });
-      if (!targetUser) {
-        return res.status(404).json({
-          success: false,
-          message: "User with this email was not found",
-        });
-      }
+      const cleanEmail = email.toLowerCase().trim();
+      const targetUser = await User.findOne({ email: cleanEmail });
 
-      if (targetUser._id.toString() === document.owner._id.toString()) {
-        return res.status(400).json({
-          success: false,
-          message: "Cannot add document owner as a collaborator",
-        });
-      }
+      if (targetUser) {
+        if (targetUser._id.toString() === document.owner._id.toString()) {
+          return res.status(400).json({
+            success: false,
+            message: "Cannot add document owner as a collaborator",
+          });
+        }
 
-      const existingCollabIndex = document.collaborators.findIndex(
-        (c) => c.user && c.user._id.toString() === targetUser._id.toString()
-      );
+        const existingCollabIndex = document.collaborators.findIndex(
+          (c) => c.user && c.user._id.toString() === targetUser._id.toString()
+        );
 
-      if (existingCollabIndex > -1) {
-        // Change/Alter existing collaborator permission role (viewer <-> commenter <-> editor)
-        document.collaborators[existingCollabIndex].role = role || "editor";
+        if (existingCollabIndex > -1) {
+          document.collaborators[existingCollabIndex].role = role || "editor";
+        } else {
+          document.collaborators.push({
+            user: targetUser._id,
+            role: role || "editor",
+          });
+        }
       } else {
-        // Invite new collaborator
-        document.collaborators.push({
-          user: targetUser._id,
-          role: role || "editor",
-        });
+        // User not registered yet — add to pendingInvites
+        if (!document.pendingInvites) {
+          document.pendingInvites = [];
+        }
+        const existingPendingIndex = document.pendingInvites.findIndex(
+          (p) => p.email && p.email.toLowerCase() === cleanEmail
+        );
+        if (existingPendingIndex > -1) {
+          document.pendingInvites[existingPendingIndex].role = role || "editor";
+        } else {
+          document.pendingInvites.push({
+            email: cleanEmail,
+            role: role || "editor",
+          });
+        }
       }
-      invitedEmail = targetUser.email;
+      invitedEmail = cleanEmail;
     }
 
     await document.save();
     await document.populate("owner", "name email avatar");
     await document.populate("collaborators.user", "name email avatar");
 
-    // Dispatch email notification with direct document link if a user was invited/shared
+    // Non-blocking asynchronous email dispatch
     if (invitedEmail) {
-      try {
-        const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-        const docUrl = `${clientUrl}/document/${document._id}`;
-        const senderName = req.user.name || "A collaborator";
+      const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+      const docUrl = `${clientUrl}/document/${document._id}`;
+      const senderName = req.user.name || "A collaborator";
 
-        await sendEmail({
-          email: invitedEmail,
-          subject: `SyncWrite - ${senderName} shared a document with you`,
-          message: `${senderName} shared "${document.title}" with you as ${role || "editor"}. Access it here: ${docUrl}`,
-          html: `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 540px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-              <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="color: #6366f1; font-size: 24px; margin: 0;">SyncWrite Collab</h2>
-                <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Document Sharing Invitation</p>
-              </div>
-              <p style="color: #1e293b; font-size: 15px; line-height: 1.5;">Hello,</p>
-              <p style="color: #475569; font-size: 14px; line-height: 1.6;"><strong>${senderName}</strong> has shared the document <strong>"${document.title}"</strong> with you as <strong>${role || "editor"}</strong>.</p>
-              <div style="text-align: center; margin: 28px 0;">
-                <a href="${docUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">Open Document</a>
-              </div>
-              <p style="color: #64748b; font-size: 13px; line-height: 1.5;">Or copy and paste this link into your web browser:</p>
-              <p style="word-break: break-all; font-size: 12px; color: #6366f1;">${docUrl}</p>
+      sendEmail({
+        email: invitedEmail,
+        subject: `SyncWrite - ${senderName} shared a document with you`,
+        message: `${senderName} shared "${document.title}" with you as ${role || "editor"}. Access it here: ${docUrl}`,
+        html: `
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 540px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h2 style="color: #6366f1; font-size: 24px; margin: 0;">SyncWrite Collab</h2>
+              <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Document Sharing Invitation</p>
             </div>
-          `,
-        });
-      } catch (emailErr) {
-        console.error("Document share email failed:", emailErr.message);
-      }
+            <p style="color: #1e293b; font-size: 15px; line-height: 1.5;">Hello,</p>
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;"><strong>${senderName}</strong> has shared the document <strong>"${document.title}"</strong> with you as <strong>${role || "editor"}</strong>.</p>
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${docUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">Open Document</a>
+            </div>
+            <p style="color: #64748b; font-size: 13px; line-height: 1.5;">Click the link above to register or sign in with Google to view and edit this document.</p>
+            <p style="word-break: break-all; font-size: 12px; color: #6366f1;">${docUrl}</p>
+          </div>
+        `,
+      }).catch((emailErr) =>
+        console.error("Document share email error:", emailErr.message)
+      );
     }
 
     return res.status(200).json({
       success: true,
-      message: "Sharing permissions updated and email link sent successfully",
+      message: "Invitation sent successfully!",
       document,
     });
   } catch (error) {

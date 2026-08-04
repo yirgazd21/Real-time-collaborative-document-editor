@@ -16,6 +16,22 @@ const collaboratorSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const pendingInviteSchema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+    },
+    role: {
+      type: String,
+      enum: ["viewer", "commenter", "editor"],
+      default: "viewer",
+    },
+  },
+  { _id: false }
+);
+
 const documentSchema = new mongoose.Schema(
   {
     title: {
@@ -35,6 +51,7 @@ const documentSchema = new mongoose.Schema(
       index: true,
     },
     collaborators: [collaboratorSchema],
+    pendingInvites: [pendingInviteSchema],
     isPublic: {
       type: Boolean,
       default: false,
@@ -64,7 +81,7 @@ const documentSchema = new mongoose.Schema(
 documentSchema.index({ title: "text" });
 
 // Helper instance method to check user access level
-documentSchema.methods.getUserAccessLevel = function (userId) {
+documentSchema.methods.getUserAccessLevel = function (userId, userEmail) {
   if (!userId) {
     return this.isPublic ? this.publicRole : null;
   }
@@ -90,6 +107,24 @@ documentSchema.methods.getUserAccessLevel = function (userId) {
 
   if (collaborator) {
     return collaborator.role;
+  }
+
+  // Check pending invites matching logged-in user email
+  if (userEmail && this.pendingInvites && this.pendingInvites.length > 0) {
+    const pendingMatch = this.pendingInvites.find(
+      (p) => p.email && p.email.toLowerCase() === userEmail.toLowerCase()
+    );
+    if (pendingMatch) {
+      // Auto-claim pending invitation into active collaborator list
+      this.collaborators.push({ user: userId, role: pendingMatch.role });
+      this.pendingInvites = this.pendingInvites.filter(
+        (p) => p.email.toLowerCase() !== userEmail.toLowerCase()
+      );
+      this.save({ validateBeforeSave: false }).catch((err) =>
+        console.error("Auto-claim pending invite save failed:", err.message)
+      );
+      return pendingMatch.role;
+    }
   }
 
   // Fallback to public access role if enabled

@@ -28,13 +28,22 @@ export const ShareModal = ({
     }
   }, [document]);
 
+  const [shareError, setShareError] = useState("");
+
   const handleAddCollaborator = async (e) => {
     e.preventDefault();
     if (!email) return;
     setIsLoading(true);
+    setShareError("");
     try {
       await onShare({ email, role });
       setEmail("");
+    } catch (err) {
+      setShareError(
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to share document."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +71,11 @@ export const ShareModal = ({
       <div className="space-y-6">
         {/* Invite New Collaborator Form */}
         <form onSubmit={handleAddCollaborator} className="space-y-3">
+          {shareError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs font-semibold">
+              {shareError}
+            </div>
+          )}
           <label className="block text-xs font-semibold uppercase tracking-wider opacity-70">
             Invite Collaborator
           </label>
@@ -114,50 +128,73 @@ export const ShareModal = ({
               <Badge role="owner" />
             </div>
 
-            {/* Invited Collaborators */}
-            {document.collaborators?.length > 0 ? (
-              document.collaborators.map((collab) => (
-                <div
-                  key={collab.user?._id || collab.user}
-                  className="flex items-center justify-between p-2.5 rounded-xl glass-panel border border-slate-700/40"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar name={collab.user?.name} src={collab.user?.avatar} size="sm" />
-                    <div>
-                      <p className="text-xs font-semibold">{collab.user?.name || "Invited User"}</p>
-                      <p className="text-[11px] opacity-60">{collab.user?.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* Role Alter Select Box */}
-                    <select
-                      value={collab.role}
-                      onChange={(e) => handleAlterRole(collab.user?.email, e.target.value)}
-                      className="glass-panel rounded-lg px-2.5 py-1 text-xs font-semibold text-indigo-500 border border-slate-700/50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="editor">Editor</option>
-                      <option value="commenter">Commenter</option>
-                      <option value="viewer">Viewer</option>
-                    </select>
-
-                    {onRemoveCollaborator && (
-                      <button
-                        onClick={() => onRemoveCollaborator(collab.user?._id)}
-                        className="p-1 rounded-lg opacity-60 hover:opacity-100 hover:text-rose-500 transition-colors"
-                        title="Revoke Access"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+            {/* Invited Active Collaborators */}
+            {document.collaborators?.map((collab) => (
+              <div
+                key={collab.user?._id || collab.user}
+                className="flex items-center justify-between p-2.5 rounded-xl glass-panel border border-slate-700/40"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar name={collab.user?.name} src={collab.user?.avatar} size="sm" />
+                  <div>
+                    <p className="text-xs font-semibold">{collab.user?.name || "Invited User"}</p>
+                    <p className="text-[11px] opacity-60">{collab.user?.email}</p>
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-xs opacity-60 text-center py-4">
-                No collaborators invited yet. Share link or invite via email above!
-              </p>
-            )}
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={collab.role}
+                    onChange={(e) => handleAlterRole(collab.user?.email, e.target.value)}
+                    className="glass-panel rounded-lg px-2.5 py-1 text-xs font-semibold text-indigo-500 border border-slate-700/50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="editor">Editor</option>
+                    <option value="commenter">Commenter</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+
+                  {onRemoveCollaborator && (
+                    <button
+                      onClick={() => onRemoveCollaborator(collab.user?._id)}
+                      className="p-1 rounded-lg opacity-60 hover:opacity-100 hover:text-rose-500 transition-colors"
+                      title="Revoke Access"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Pending Invites (Users who have not registered yet) */}
+            {document.pendingInvites?.map((pending) => (
+              <div
+                key={pending.email}
+                className="flex items-center justify-between p-2.5 rounded-xl glass-panel border border-dashed border-indigo-500/40 bg-indigo-500/5"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar name={pending.email} size="sm" />
+                  <div>
+                    <p className="text-xs font-semibold">{pending.email}</p>
+                    <span className="text-[10px] text-amber-500 font-semibold uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                      Pending Invite
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={pending.role}
+                    onChange={(e) => handleAlterRole(pending.email, e.target.value)}
+                    className="glass-panel rounded-lg px-2.5 py-1 text-xs font-semibold text-indigo-500 border border-slate-700/50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="editor">Editor</option>
+                    <option value="commenter">Commenter</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

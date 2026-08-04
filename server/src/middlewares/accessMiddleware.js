@@ -36,7 +36,8 @@ const requireDocAccess = (requiredRole = "viewer") => {
       }
 
       const userId = req.user ? req.user._id : null;
-      const userRole = document.getUserAccessLevel(userId);
+      const userEmail = req.user ? req.user.email : null;
+      const userRole = document.getUserAccessLevel(userId, userEmail);
 
       if (!userRole) {
         return res.status(403).json({

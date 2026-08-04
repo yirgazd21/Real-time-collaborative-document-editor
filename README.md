@@ -69,7 +69,7 @@ SyncWrite Collab is a modern, full-stack real-time collaborative document editin
 
 ### 1. Clone & Project Directory
 ```bash
-git clone <repository-url>
+git clone https://github.com/yirgazd21/Real-time-collaborative-document-editor.git
 cd syncwrite_collab
 ```
 
