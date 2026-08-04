@@ -1,5 +1,6 @@
 const Document = require("../models/Document");
 const User = require("../models/User");
+const sendEmail = require("../utils/sendEmail");
 
 /**
  * @desc    Create a new document
@@ -127,6 +128,8 @@ const shareDocument = async (req, res, next) => {
       document.publicRole = publicRole;
     }
 
+    let invitedEmail = null;
+
     if (email) {
       const targetUser = await User.findOne({ email: email.toLowerCase() });
       if (!targetUser) {
@@ -157,15 +160,48 @@ const shareDocument = async (req, res, next) => {
           role: role || "editor",
         });
       }
+      invitedEmail = targetUser.email;
     }
 
     await document.save();
     await document.populate("owner", "name email avatar");
     await document.populate("collaborators.user", "name email avatar");
 
+    // Dispatch email notification with direct document link if a user was invited/shared
+    if (invitedEmail) {
+      try {
+        const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+        const docUrl = `${clientUrl}/document/${document._id}`;
+        const senderName = req.user.name || "A collaborator";
+
+        await sendEmail({
+          email: invitedEmail,
+          subject: `SyncWrite - ${senderName} shared a document with you`,
+          message: `${senderName} shared "${document.title}" with you as ${role || "editor"}. Access it here: ${docUrl}`,
+          html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 540px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+              <div style="text-align: center; margin-bottom: 24px;">
+                <h2 style="color: #6366f1; font-size: 24px; margin: 0;">SyncWrite Collab</h2>
+                <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Document Sharing Invitation</p>
+              </div>
+              <p style="color: #1e293b; font-size: 15px; line-height: 1.5;">Hello,</p>
+              <p style="color: #475569; font-size: 14px; line-height: 1.6;"><strong>${senderName}</strong> has shared the document <strong>"${document.title}"</strong> with you as <strong>${role || "editor"}</strong>.</p>
+              <div style="text-align: center; margin: 28px 0;">
+                <a href="${docUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">Open Document</a>
+              </div>
+              <p style="color: #64748b; font-size: 13px; line-height: 1.5;">Or copy and paste this link into your web browser:</p>
+              <p style="word-break: break-all; font-size: 12px; color: #6366f1;">${docUrl}</p>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        console.error("Document share email failed:", emailErr.message);
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Sharing permissions updated successfully",
+      message: "Sharing permissions updated and email link sent successfully",
       document,
     });
   } catch (error) {
