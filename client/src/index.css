@@ -106,11 +106,11 @@ html.light textarea::placeholder {
 
 /* The workspace behind the pages – always gray */
 .doc-workspace {
-  display:flex;
-  justify-content:center;
-  width:100%;
-  padding:40px 0;
-  background:#e6e9ef;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 40px 0;
+  background: #e6e9ef;
 }
 
 /* Dark mode – workspace darkens, pages stay white */
@@ -131,21 +131,21 @@ html.dark .doc-workspace {
 
 .word-editor .pagination-page {
 
-  width:210mm;
-  height:297mm;
+  width: 210mm;
+  height: 297mm;
 
-  background:white;
+  background: white;
 
-  padding:25.4mm;
+  padding: 25.4mm;
 
-  box-sizing:border-box;
+  box-sizing: border-box;
 
-  border:1px solid #c0c4cc;
+  border: 1px solid #c0c4cc;
 
   box-shadow:
-    0 4px 15px rgba(0,0,0,.15);
+    0 4px 15px rgba(0, 0, 0, .15);
 
-  overflow:hidden;
+  overflow: hidden;
 
 }
 
@@ -192,7 +192,7 @@ html.dark .word-editor .pagination-page .ProseMirror h4 {
 
 .word-editor .ProseMirror {
 
-  min-height:246.2mm;
+  min-height: 246.2mm;
 
   font-family:
     "Aptos",
@@ -200,11 +200,11 @@ html.dark .word-editor .pagination-page .ProseMirror h4 {
     Arial,
     sans-serif;
 
-  font-size:12pt;
+  font-size: 12pt;
 
-  line-height:1.5;
+  line-height: 1.5;
 
-  outline:none;
+  outline: none;
 
 }
 
@@ -264,6 +264,11 @@ ul[data-type="taskList"] li>div {
 }
 
 /* Base Tiptap Editor */
+.word-document-page .ProseMirror {
+  min-height: calc(1123px - 6rem);
+  height: 100%;
+}
+
 .ProseMirror {
   outline: none;
   color: var(--text-main);
@@ -319,9 +324,11 @@ ul[data-type="taskList"] li>div {
 .ProseMirror ul[data-list-style-type="disc"] {
   list-style-type: disc !important;
 }
+
 .ProseMirror ul[data-list-style-type="circle"] {
   list-style-type: circle !important;
 }
+
 .ProseMirror ul[data-list-style-type="square"] {
   list-style-type: square !important;
 }
@@ -336,15 +343,19 @@ ul[data-type="taskList"] li>div {
 .ProseMirror ol[data-list-style-type="decimal"] {
   list-style-type: decimal !important;
 }
+
 .ProseMirror ol[data-list-style-type="lower-alpha"] {
   list-style-type: lower-alpha !important;
 }
+
 .ProseMirror ol[data-list-style-type="upper-alpha"] {
   list-style-type: upper-alpha !important;
 }
+
 .ProseMirror ol[data-list-style-type="lower-roman"] {
   list-style-type: lower-roman !important;
 }
+
 .ProseMirror ol[data-list-style-type="upper-roman"] {
   list-style-type: upper-roman !important;
 }
@@ -413,4 +424,16 @@ ul[data-type="taskList"] li>div {
   bottom: 0;
   background: rgba(99, 102, 241, 0.2);
   pointer-events: none;
+}
+
+.word-document-page{
+    width:full;
+    height:full;
+    min-height:1024px;
+    margin:20px auto;
+    padding: 20px;
+
+    background:#fff;
+
+    box-sizing:border-box;
 }

@@ -76,7 +76,7 @@ const CustomTableCell = TableCell.extend({
 // Memoized Editor Content component to prevent React Virtual DOM reconciliation crashes with Tiptap DOM mutations
 const MemoizedEditorContent = React.memo(
   ({ editor }) => {
-    return <EditorContent editor={editor} className="w-full" />;
+    return <EditorContent editor={editor} className="w-full h-full min-h-[1024px]" />;
   },
   (prev, next) => prev.editor === next.editor
 );
@@ -150,6 +150,12 @@ export const EditorPage = () => {
       }),
       PaginationPlus.configure({
         addCss: true,
+        pageHeight: 1024,
+        pageWidth: 794,
+        marginTop: 48,
+        marginBottom: 48,
+        marginLeft: 48,
+        marginRight: 48,
       }),
     ],
     content: "",
@@ -358,292 +364,326 @@ export const EditorPage = () => {
         });
       }
     };
-    
+
     window.addEventListener("wheel", handleWheel, { passive: false });
     return () => window.removeEventListener("wheel", handleWheel);
   }, []);
 
   // Export Handlers
   const handleExportPDF = () => {
-    const element = document.querySelector(".word-document-page");
-    if (!element) return;
-    const opt = {
-      margin: 0.5,
-      filename: `${title || "document"}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-    };
-    html2pdf().set(opt).from(element).save();
-  };
+  // Export the actual pagination container
+  const element =
+    document.querySelector(".word-editor") ||
+    document.querySelector(".pagination-container") ||
+    document.querySelector(".word-document-page");
 
-  const handleExportWord = () => {
-    const html = editor?.getHTML() || "";
-    const header =
-      "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export Word</title></head><body>";
-    const footer = "</body></html>";
-    const sourceHTML = header + html + footer;
-
-    const source =
-      "data:application/vnd.ms-word;charset=utf-8," +
-      encodeURIComponent(sourceHTML);
-    const fileDownload = document.createElement("a");
-    document.body.appendChild(fileDownload);
-    fileDownload.href = source;
-    fileDownload.download = `${title || "document"}.doc`;
-    fileDownload.click();
-    document.body.removeChild(fileDownload);
-  };
-
-  const handleExportMarkdown = () => {
-    const textContent = editor?.getText() || "";
-    const blob = new Blob([textContent], { type: "text/markdown;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `${title || "document"}.md`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  if (loading) {
-    return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center transition-colors">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mb-3" />
-        <p className="text-sm opacity-70">Opening workspace...</p>
-      </div>
-    );
+  if (!element) {
+    console.error("No document found to export.");
+    return;
   }
 
-  const canEdit = userAccessLevel === "owner" || userAccessLevel === "editor";
-  const typingList = Array.from(typingUsers);
-  const lastModifier = docData?.lastModifiedBy?.name || docData?.owner?.name || "Someone";
-  const lastModifiedTime = docData?.updatedAt
-    ? formatDistanceToNow(new Date(docData.updatedAt), { addSuffix: true })
-    : "recently";
+  html2pdf()
+    .from(element)
+    .set({
+      filename: `${title || "document"}.pdf`,
 
+      margin: [0, 0, 0, 0],
+
+      image: {
+        type: "jpeg",
+        quality: 1,
+      },
+
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: 0,
+      },
+
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+      },
+
+      pagebreak: {
+        mode: ["css", "legacy"],
+        before: ".pagination-page",
+      },
+    })
+    .save();
+};
+
+
+const handleExportWord = () => {
+  const html = editor?.getHTML() || "";
+  const header =
+    "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export Word</title></head><body>";
+  const footer = "</body></html>";
+  const sourceHTML = header + html + footer;
+
+  const source =
+    "data:application/vnd.ms-word;charset=utf-8," +
+    encodeURIComponent(sourceHTML);
+  const fileDownload = document.createElement("a");
+  document.body.appendChild(fileDownload);
+  fileDownload.href = source;
+  fileDownload.download = `${title || "document"}.doc`;
+  fileDownload.click();
+  document.body.removeChild(fileDownload);
+};
+
+const handleExportMarkdown = () => {
+  const textContent = editor?.getText() || "";
+  const blob = new Blob([textContent], { type: "text/markdown;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `${title || "document"}.md`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+if (loading) {
   return (
-    <div className="min-h-screen transition-colors flex flex-col">
-      {/* Top Editor Header */}
-      <header className="sticky top-0 z-40 glass-panel border-b border-slate-700/50 px-4 py-2.5 flex items-center justify-between gap-4">
-        {/* Left: Back, Document Title & Last Modifier Badge */}
-        <div className="flex items-center gap-3">
-          <Link
-            to="/"
-            className="p-2 rounded-xl opacity-70 hover:opacity-100 hover:bg-slate-800/30 transition-colors"
-            title="Back to Dashboard"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-
-          <div>
-            <div className="flex items-center gap-2">
-              {canEdit ? (
-                <input
-                  type="text"
-                  value={title}
-                  onChange={handleTitleChange}
-                  placeholder="Untitled Document"
-                  className="bg-transparent font-bold text-lg hover:bg-slate-800/20 focus:bg-slate-800/40 px-2 py-0.5 rounded-xl border border-transparent focus:border-indigo-500/50 focus:outline-none transition-all"
-                />
-              ) : (
-                <h1 className="font-bold text-lg px-2">{title}</h1>
-              )}
-
-              <Badge role={userAccessLevel} />
-
-              {/* Auto Save Status */}
-              <span className="hidden sm:flex items-center gap-1 text-xs opacity-80 glass-panel px-2.5 py-0.5 rounded-full font-mono">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                {saveStatus}
-              </span>
-            </div>
-
-            {/* Last Modified By Indicator */}
-            <p className="text-[11px] opacity-70 px-2 flex items-center gap-1.5 mt-0.5">
-              <UserCheck className="w-3 h-3 text-indigo-500" />
-              <span>
-                Last edited by <strong className="font-semibold">{lastModifier}</strong> {lastModifiedTime}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {/* Right: Presence, Theme Toggle, Live Typing & Header Actions */}
-        <div className="flex items-center gap-3">
-          {/* Live Typing Preview Banner */}
-          {typingList.length > 0 && (
-            <div className="hidden md:flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-3 py-1 rounded-full text-xs font-medium animate-pulse">
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>{typingList.join(", ")} editing...</span>
-            </div>
-          )}
-
-          <PresenceAvatars presenceList={presenceList} currentUserId={user?._id} />
-
-          {/* Theme Switcher Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl glass-panel text-slate-300 hover:text-amber-400 transition-colors"
-            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
-          >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-600" />
-            )}
-          </button>
-
-          {/* Share Button */}
-          {canEdit && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setIsShareOpen(true)}
-              className="shadow-lg shadow-indigo-600/20"
-            >
-              <Share2 className="w-4 h-4" /> Share
-            </Button>
-          )}
-
-          {/* History Panel Toggle */}
-          <button
-            onClick={() => {
-              setIsHistoryOpen(!isHistoryOpen);
-              if (!isHistoryOpen) setIsCommentsOpen(false);
-            }}
-            className={`p-2 rounded-xl border transition-colors ${isHistoryOpen
-                ? "bg-indigo-600 border-indigo-500 text-white"
-                : "glass-panel hover:bg-slate-800/30"
-              }`}
-            title="Version History"
-          >
-            <History className="w-4 h-4" />
-          </button>
-
-          {/* Comments Panel Toggle */}
-          <button
-            onClick={() => {
-              setIsCommentsOpen(!isCommentsOpen);
-              if (!isCommentsOpen) setIsHistoryOpen(false);
-            }}
-            className={`p-2 rounded-xl border transition-colors ${isCommentsOpen
-                ? "bg-indigo-600 border-indigo-500 text-white"
-                : "glass-panel hover:bg-slate-800/30"
-              }`}
-            title="Comments Thread"
-          >
-            <MessageSquare className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
-
-      {/* Editor Formatting Toolbar */}
-      <EditorToolbar
-        editor={editor}
-        onExportPDF={handleExportPDF}
-        onExportWord={handleExportWord}
-        onExportMarkdown={handleExportMarkdown}
-      />
-
-      {/* Split Workspace Layout */}
-      <div className="flex-1 flex items-start justify-center gap-6 max-w-7xl w-full mx-auto p-4 sm:p-6">
-        {/* Main Partitioned Word-Style Sheet Canvas */}
-        <main className="flex-1 flex flex-col items-center max-w-4xl w-full">
-          {/* Static Banners Container */}
-          <div className="w-full space-y-2 mb-3">
-            {!canEdit && (
-              <div className="w-full p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                <span>Read-Only Mode. You have viewer permissions for this document.</span>
-              </div>
-            )}
-
-            {typingList.length > 0 && (
-              <div className="w-full md:hidden p-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-xl text-xs flex items-center gap-2">
-                <Edit3 className="w-3.5 h-3.5 animate-bounce" />
-                <span>{typingList.join(", ")} editing...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Image Floating Toolbar */}
-          <ImageBubbleMenu editor={editor} onOpenCrop={(src) => setCropImageSrc(src)} />
-          
-          {/* Table Floating Toolbar */}
-          <TableBubbleMenu editor={editor} />
-
-          {/* Paginated Word Document Sheet */}
-          <div 
-            className="w-full flex justify-center transition-transform duration-100 ease-out origin-top"
-            style={{ transform: `scale(${zoomLevel})` }}
-          >
-            <div className="word-document-page w-full min-h-[850px] rounded-2xl p-8 sm:p-12 transition-all">
-              <MemoizedEditorContent editor={editor} />
-            </div>
-          </div>
-
-        </main>
-
-        {/* Image Crop Modal */}
-        <ImageCropModal
-          isOpen={!!cropImageSrc}
-          onClose={() => setCropImageSrc(null)}
-          imageSrc={cropImageSrc}
-          onCropComplete={(base64) => {
-            if (editor) {
-              editor.chain().focus().setImage({ src: base64 }).run();
-            }
-            setCropImageSrc(null);
-          }}
-        />
-
-        {/* Aligned Side Panels (Comments or Version History) */}
-        <HistoryDrawer
-          isOpen={isHistoryOpen}
-          onClose={() => setIsHistoryOpen(false)}
-          documentId={documentId}
-          userAccessLevel={userAccessLevel}
-          onRestoreSuccess={(restoredDoc) => {
-            setDocData(restoredDoc);
-            setTitle(restoredDoc.title || "Untitled Document");
-            if (editor && restoredDoc.content !== undefined) {
-              isRemoteChange.current = true;
-              editor.commands.setContent(restoredDoc.content);
-            }
-            setSaveStatus("Saved");
-
-            // Broadcast restored content over Socket.IO to all collaborators in room
-            if (socket && isConnected) {
-              socket.emit("send-changes", {
-                documentId,
-                content: restoredDoc.content,
-                title: restoredDoc.title,
-              });
-            }
-          }}
-        />
-
-        <CommentSidebar
-          isOpen={isCommentsOpen}
-          onClose={() => setIsCommentsOpen(false)}
-          documentId={documentId}
-          currentUserId={user?._id}
-          userAccessLevel={userAccessLevel}
-        />
-      </div>
-
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={isShareOpen}
-        onClose={() => setIsShareOpen(false)}
-        document={docData}
-        onShare={async (shareData) => {
-          const res = await docService.shareDocument(documentId, shareData);
-          setDocData(res.document);
-        }}
-      />
+    <div className="h-screen w-screen flex flex-col items-center justify-center transition-colors">
+      <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mb-3" />
+      <p className="text-sm opacity-70">Opening workspace...</p>
     </div>
   );
 };
+const canEdit = userAccessLevel === "owner" || userAccessLevel === "editor";
+const typingList = Array.from(typingUsers);
+const lastModifier = docData?.lastModifiedBy?.name || docData?.owner?.name || "Someone";
+const lastModifiedTime = docData?.updatedAt
+  ? formatDistanceToNow(new Date(docData.updatedAt), { addSuffix: true })
+  : "recently";
+
+return (
+  <div className="min-h-screen transition-colors flex flex-col">
+    {/* Top Editor Header */}
+    <header className="sticky top-0 z-40 glass-panel border-b border-slate-700/50 px-4 py-2.5 flex items-center justify-between gap-4">
+      {/* Left: Back, Document Title & Last Modifier Badge */}
+      <div className="flex items-center gap-3">
+        <Link
+          to="/"
+          className="p-2 rounded-xl opacity-70 hover:opacity-100 hover:bg-slate-800/30 transition-colors"
+          title="Back to Dashboard"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+
+        <div>
+          <div className="flex items-center gap-2">
+            {canEdit ? (
+              <input
+                type="text"
+                value={title}
+                onChange={handleTitleChange}
+                placeholder="Untitled Document"
+                className="bg-transparent font-bold text-lg hover:bg-slate-800/20 focus:bg-slate-800/40 px-2 py-0.5 rounded-xl border border-transparent focus:border-indigo-500/50 focus:outline-none transition-all"
+              />
+            ) : (
+              <h1 className="font-bold text-lg px-2">{title}</h1>
+            )}
+
+            <Badge role={userAccessLevel} />
+
+            {/* Auto Save Status */}
+            <span className="hidden sm:flex items-center gap-1 text-xs opacity-80 glass-panel px-2.5 py-0.5 rounded-full font-mono">
+              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+              {saveStatus}
+            </span>
+          </div>
+
+          {/* Last Modified By Indicator */}
+          <p className="text-[11px] opacity-70 px-2 flex items-center gap-1.5 mt-0.5">
+            <UserCheck className="w-3 h-3 text-indigo-500" />
+            <span>
+              Last edited by <strong className="font-semibold">{lastModifier}</strong> {lastModifiedTime}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Right: Presence, Theme Toggle, Live Typing & Header Actions */}
+      <div className="flex items-center gap-3">
+        {/* Live Typing Preview Banner */}
+        {typingList.length > 0 && (
+          <div className="hidden md:flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-3 py-1 rounded-full text-xs font-medium animate-pulse">
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>{typingList.join(", ")} editing...</span>
+          </div>
+        )}
+
+        <PresenceAvatars presenceList={presenceList} currentUserId={user?._id} />
+
+        {/* Theme Switcher Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-xl glass-panel text-slate-300 hover:text-amber-400 transition-colors"
+          title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4 text-amber-400" />
+          ) : (
+            <Moon className="w-4 h-4 text-indigo-600" />
+          )}
+        </button>
+
+        {/* Share Button */}
+        {canEdit && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setIsShareOpen(true)}
+            className="shadow-lg shadow-indigo-600/20"
+          >
+            <Share2 className="w-4 h-4" /> Share
+          </Button>
+        )}
+
+        {/* History Panel Toggle */}
+        <button
+          onClick={() => {
+            setIsHistoryOpen(!isHistoryOpen);
+            if (!isHistoryOpen) setIsCommentsOpen(false);
+          }}
+          className={`p-2 rounded-xl border transition-colors ${isHistoryOpen
+            ? "bg-indigo-600 border-indigo-500 text-white"
+            : "glass-panel hover:bg-slate-800/30"
+            }`}
+          title="Version History"
+        >
+          <History className="w-4 h-4" />
+        </button>
+
+        {/* Comments Panel Toggle */}
+        <button
+          onClick={() => {
+            setIsCommentsOpen(!isCommentsOpen);
+            if (!isCommentsOpen) setIsHistoryOpen(false);
+          }}
+          className={`p-2 rounded-xl border transition-colors ${isCommentsOpen
+            ? "bg-indigo-600 border-indigo-500 text-white"
+            : "glass-panel hover:bg-slate-800/30"
+            }`}
+          title="Comments Thread"
+        >
+          <MessageSquare className="w-4 h-4" />
+        </button>
+      </div>
+    </header>
+
+    {/* Editor Formatting Toolbar */}
+    <EditorToolbar
+      editor={editor}
+      onExportPDF={handleExportPDF}
+      onExportWord={handleExportWord}
+      onExportMarkdown={handleExportMarkdown}
+    />
+
+    {/* Split Workspace Layout */}
+    <div className="flex-1 flex items-start justify-center gap-6 max-w-7xl w-full mx-auto p-4 sm:p-6">
+      {/* Main Partitioned Word-Style Sheet Canvas */}
+      <main className="flex-1 flex flex-col items-center max-w-4xl w-full">
+        {/* Static Banners Container */}
+        <div className="w-full space-y-2 mb-3">
+          {!canEdit && (
+            <div className="w-full p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              <span>Read-Only Mode. You have viewer permissions for this document.</span>
+            </div>
+          )}
+
+          {typingList.length > 0 && (
+            <div className="w-full md:hidden p-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-xl text-xs flex items-center gap-2">
+              <Edit3 className="w-3.5 h-3.5 animate-bounce" />
+              <span>{typingList.join(", ")} editing...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Image Floating Toolbar */}
+        <ImageBubbleMenu editor={editor} onOpenCrop={(src) => setCropImageSrc(src)} />
+
+        {/* Table Floating Toolbar */}
+        <TableBubbleMenu editor={editor} />
+
+        {/* Paginated Word Document Sheet */}
+        <div
+          className="w-full flex justify-center transition-transform duration-100 ease-out origin-top"
+          style={{ transform: `scale(${zoomLevel})` }}
+        >
+          <div className="word-document-page ">
+            <MemoizedEditorContent editor={editor} />
+          </div>
+        </div>
+
+      </main>
+
+      {/* Image Crop Modal */}
+      <ImageCropModal
+        isOpen={!!cropImageSrc}
+        onClose={() => setCropImageSrc(null)}
+        imageSrc={cropImageSrc}
+        onCropComplete={(base64) => {
+          if (editor) {
+            editor.chain().focus().setImage({ src: base64 }).run();
+          }
+          setCropImageSrc(null);
+        }}
+      />
+
+      {/* Aligned Side Panels (Comments or Version History) */}
+      <HistoryDrawer
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        documentId={documentId}
+        userAccessLevel={userAccessLevel}
+        onRestoreSuccess={(restoredDoc) => {
+          setDocData(restoredDoc);
+          setTitle(restoredDoc.title || "Untitled Document");
+          if (editor && restoredDoc.content !== undefined) {
+            isRemoteChange.current = true;
+            editor.commands.setContent(restoredDoc.content);
+          }
+          setSaveStatus("Saved");
+
+          // Broadcast restored content over Socket.IO to all collaborators in room
+          if (socket && isConnected) {
+            socket.emit("send-changes", {
+              documentId,
+              content: restoredDoc.content,
+              title: restoredDoc.title,
+            });
+          }
+        }}
+      />
+
+      <CommentSidebar
+        isOpen={isCommentsOpen}
+        onClose={() => setIsCommentsOpen(false)}
+        documentId={documentId}
+        currentUserId={user?._id}
+        userAccessLevel={userAccessLevel}
+      />
+    </div>
+
+    {/* Share Modal */}
+    <ShareModal
+      isOpen={isShareOpen}
+      onClose={() => setIsShareOpen(false)}
+      document={docData}
+      onShare={async (shareData) => {
+        const res = await docService.shareDocument(documentId, shareData);
+        setDocData(res.document);
+      }}
+    />
+  </div>
+);
+};
+
