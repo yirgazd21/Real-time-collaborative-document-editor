@@ -34,7 +34,7 @@ export const Navbar = ({ onSearchChange, searchValue = "" }) => {
           </div>
         </Link>
 
-        {/* Optional Search Bar */}
+        {/*  Search Bar */}
         {onSearchChange && (
           <div className="flex-1 max-w-md hidden sm:block">
             <input

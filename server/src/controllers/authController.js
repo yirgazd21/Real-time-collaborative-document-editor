@@ -42,11 +42,7 @@ const sendAuthResponse = (user, statusCode, res, message) => {
   });
 };
 
-/**
- * @desc    Register new user
- * @route   POST /api/auth/register
- * @access  Public
- */
+// register user
 const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;

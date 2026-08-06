@@ -72,10 +72,28 @@ export const EditorPage = () => {
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
+  const [remoteCursors, setRemoteCursors] = useState({});
+
   const isRemoteChange = useRef(false);
   const typingTimeoutRef = useRef(null);
   const saveDebounceRef = useRef(null);
 
+  const getUserColor = (userId = "") => {
+    const colors = [
+      "#6366f1", // Indigo
+      "#10b981", // Emerald
+      "#ec4899", // Pink
+      "#f59e0b", // Amber
+      "#8b5cf6", // Purple
+      "#06b6d4", // Cyan
+      "#f43f5e", // Rose
+    ];
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
   // Initialize Tiptap Editor with Extensions
   const editor = useEditor({
     extensions: [
@@ -271,9 +289,18 @@ export const EditorPage = () => {
       setSaveStatus("Error saving");
     };
 
+    const handleCursorUpdate = ({ socketId, userId, name, cursor }) => {
+      if (userId === user?._id) return;
+      setRemoteCursors((prev) => ({
+        ...prev,
+        [socketId]: { socketId, userId, name, cursor, updatedAt: Date.now() },
+      }));
+    };
+
     socket.on("presence-update", handlePresence);
     socket.on("user-typing", handleUserTyping);
     socket.on("receive-changes", handleReceiveChanges);
+    socket.on("cursor-update", handleCursorUpdate);
     socket.on("save-success", handleSaveSuccess);
     socket.on("save-error", handleSaveError);
 
@@ -281,11 +308,49 @@ export const EditorPage = () => {
       socket.off("presence-update", handlePresence);
       socket.off("user-typing", handleUserTyping);
       socket.off("receive-changes", handleReceiveChanges);
+      socket.off("cursor-update", handleCursorUpdate);
       socket.off("save-success", handleSaveSuccess);
       socket.off("save-error", handleSaveError);
       socket.emit("leave-document");
     };
   }, [socket, isConnected, documentId, editor, user]);
+
+  // Track & Emit Local Cursor Selection to Room
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || !socket || !isConnected || !documentId) return;
+
+    const handleSelectionUpdate = () => {
+      const { from, to } = editor.state.selection;
+      socket.emit("cursor-move", {
+        documentId,
+        cursor: { from, to },
+        selection: { from, to },
+      });
+    };
+
+    editor.on("selectionUpdate", handleSelectionUpdate);
+    return () => {
+      editor.off("selectionUpdate", handleSelectionUpdate);
+    };
+  }, [editor, socket, isConnected, documentId]);
+
+  // Helper to calculate pixel position for remote cursor badges over editor page
+  const getCursorCoords = (pos) => {
+    if (!editor || editor.isDestroyed || !editor.view) return null;
+    try {
+      const docSize = editor.state.doc.content.size;
+      const safePos = Math.min(Math.max(1, pos), docSize);
+      const coords = editor.view.coordsAtPos(safePos);
+      const domRect = editor.view.dom.getBoundingClientRect();
+      if (!coords || !domRect) return null;
+      return {
+        left: coords.left - domRect.left,
+        top: coords.top - domRect.top,
+      };
+    } catch (err) {
+      return null;
+    }
+  };
 
   // Document Title Change Handler
   const handleTitleChange = async (e) => {
@@ -572,8 +637,38 @@ return (
           className="w-full flex justify-center transition-transform duration-100 ease-out origin-top"
           style={{ transform: `scale(${zoomLevel})` }}
         >
-          <div className="word-document-page ">
+          <div className="word-document-page relative">
             <MemoizedEditorContent editor={editor} />
+
+            {/* Live Remote Collaborator Cursors Overlay */}
+            {Object.values(remoteCursors).map((remote) => {
+              if (!remote.cursor?.from) return null;
+              const coords = getCursorCoords(remote.cursor.from);
+              if (!coords) return null;
+              const userColor = getUserColor(remote.userId);
+
+              return (
+                <div
+                  key={remote.socketId}
+                  className="absolute pointer-events-none z-20 transition-all duration-75"
+                  style={{
+                    left: `${coords.left}px`,
+                    top: `${coords.top}px`,
+                  }}
+                >
+                  <div
+                    className="w-0.5 h-5 animate-pulse"
+                    style={{ backgroundColor: userColor }}
+                  />
+                  <div
+                    className="absolute -top-5 left-0 px-1.5 py-0.5 rounded text-[10px] font-bold text-white whitespace-nowrap shadow-md border border-white/20"
+                    style={{ backgroundColor: userColor }}
+                  >
+                    {remote.name}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -594,16 +689,7 @@ return (
             isRemoteChange.current = true;
             editor.commands.setContent(restoredDoc.content);
           }
-          setSaveStatus("Saved");
-
-          // Broadcast restored content over Socket.IO to all collaborators in room
-          if (socket && isConnected) {
-            socket.emit("send-changes", {
-              documentId,
-              content: restoredDoc.content,
-              title: restoredDoc.title,
-            });
-          }
+          setSaveStatus("Saved (Local Restoration)");
         }}
       />
 

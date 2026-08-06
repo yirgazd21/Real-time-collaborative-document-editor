@@ -1,143 +1,198 @@
-# 🚀 SyncWrite Collab - Real-Time Collaborative Document Editor
+# SyncWrite Collab
 
-SyncWrite Collab is a modern, full-stack real-time collaborative document editing application inspired by Google Docs and Notion. Built with **React 19**, **TipTap**, **Node.js**, **Express 5**, **MongoDB**, and **Socket.IO**.
+SyncWrite Collab is a full-stack collaborative document editor built for real-time co-authoring, permission-aware sharing, and revision tracking. The system combines a React + Vite client, an Express-based API, and a Socket.IO collaboration layer to provide a Google Docs-style editing experience with document-level access control.
 
----
+## Project goal
 
-## ✨ Features
+The application lets users:
 
-- **🔐 Robust Authentication & Security**:
-  - Email/Password authentication with password strength validation.
-  - Native Google OAuth 2.0 integration.
-  - Dual-token authorization strategy (15-minute Access Token, 7-day Refresh Token stored in HTTP-Only cookies & local storage).
-  - Silent token refresh interceptor with request queueing.
+- create and manage rich-text documents
+- share documents with collaborators
+- edit content live with presence and typing awareness
+- review revision history and restore previous versions
+- export documents to PDF, Word, or Markdown
 
-- **⚡ Real-Time Collaboration**:
-  - Live document synchronization using Socket.IO rooms (`document:<id>`).
-  - Active collaborator presence tracking with avatars and user details.
-  - Live cursor and text selection position tracking.
-  - Real-time typing status indicators.
+## Core architecture
 
-- **✍️ Rich Text Editing**:
-  - Powered by TipTap editor with support for typography, font size, custom text/highlight colors, alignment, lists, task checkboxes, code blocks, blockquotes.
-  - Custom resizable images with upload and crop modal.
-  - Interactive table creation and cell background styling.
-  - Export document to **PDF** (`html2pdf.js`), **Word** (`.doc`), and **Markdown** (`.md`).
+The project is split into two main runtime parts:
 
-- **📜 Smart Version History & Revisions**:
-  - Automatic initial document version snapshot.
-  - Periodic 10-minute auto-save snapshots.
-  - Intelligent structural edit detection (new images, tables, or >200 character changes after 3 minutes).
-  - Session closing snapshot when collaborators leave the document.
-  - One-click version restoration with automatic safeguard backup before rollback.
+- Client application in `client/`
+  - React 19 frontend
+  - TipTap rich-text editor
+  - React Router navigation
+  - Socket.IO client for live collaboration
+  - REST API client for auth, document, comment, and revision flows
 
-- **💬 Real-Time Comments & Discussion**:
-  - Threaded comments with nested replies.
-  - Resolve/reopen discussion thread state.
-  - Instant Socket.IO event broadcasting for comment updates.
+- Server application in `server/`
+  - Express 5 HTTP server
+  - Mongoose + MongoDB persistence
+  - JWT authentication and access middleware
+  - Socket.IO event handlers for room-based collaboration
+  - Revision and document management services
 
-- **🛡️ Granular Access Control (RBAC)**:
-  - Four permission roles: `owner`, `editor`, `commenter`, `viewer`.
-  - Public link sharing settings with configurable default public role.
+## System flow
 
----
+1. A user logs in through the client.
+2. The client requests document data through the REST API.
+3. The server resolves the document and applies role-based access filtering.
+4. When the document is opened, the client joins a Socket.IO document room.
+5. All typing, formatting, title changes, and save events are broadcast through that room.
+6. The server stores the latest document state in MongoDB and creates revision snapshots based on timing and structural change rules.
 
-## 🛠️ Tech Stack
+## Main feature areas
 
-### Frontend
-- **Framework**: React 19, Vite, React Router v7
-- **Editor**: TipTap (`@tiptap/react`, `@tiptap/starter-kit`, `tiptap-pagination-plus`)
-- **Styling**: Tailwind CSS v4, Lucide React icons
-- **Utilities**: Axios, Socket.IO Client, `@react-oauth/google`, `html2pdf.js`, `date-fns`
+### Authentication and authorization
 
-### Backend
-- **Runtime & Framework**: Node.js, Express 5
-- **Database**: MongoDB & Mongoose 9
-- **Real-Time**: Socket.IO 4
-- **Security & Auth**: `jsonwebtoken`, `bcrypt`, `google-auth-library`, `cookie-parser`, `cors`
+- email/password login
+- Google OAuth login
+- JWT access token validation on protected API routes
+- document-level role enforcement for `owner`, `editor`, `commenter`, and `viewer`
+- public/private document sharing
 
----
+### Collaboration layer
 
-## 🚀 Setup & Installation Instructions
+- document-specific Socket.IO rooms
+- collaborator presence tracking
+- typing indicators
+- live document content broadcast to active participants
+- room cleanup and last-user-leave revision snapshots
+
+### Editor experience
+
+- TipTap-based rich text editing
+- headings, paragraph alignment, highlights, colors, lists, tables, images, and task items
+- zoom support and export utilities
+- read-only mode for lower-permission users
+
+### Versioning and restore
+
+- automatic initial revision creation
+- periodic auto-save revision snapshots
+- major-change revision creation when meaningful document structure changes occur
+- restore from version history in the editor UI
+
+## Repository structure
+
+- `client/` – frontend source, pages, UI components, hooks, services, context
+- `server/` – backend source, controllers, routes, middleware, models, sockets
+- `ARCHITECTURE.md` – system-level design summary
+- `SYSTEM_DETAILS.md` – implementation detail and runtime behavior
+
+## Setup
 
 ### Prerequisites
-- **Node.js** (v18.x or higher)
-- **npm** (v9.x or higher)
-- **MongoDB** (Local instance or MongoDB Atlas cluster URI)
 
----
+- Node.js 18+
+- npm
+- MongoDB instance or Atlas connection
 
-### 1. Clone & Project Directory
+### Backend
+
 ```bash
-git clone https://github.com/yirgazd21/Real-time-collaborative-document-editor.git
-cd syncwrite_collab
+cd server
+npm install
+npm run dev
 ```
 
----
+### Frontend
 
-### 2. Environment Variables Configuration
+```bash
+cd client
+npm install
+npm run dev
+```
 
-#### Backend (`server/.env`)
-Create a `.env` file in the `server` directory:
+### Environment variables
+
+Server `.env` example:
 
 ```env
 PORT=3000
 NODE_ENV=development
 MONGO_URI=mongodb://localhost:27017/syncwrite_collab
 CLIENT_URL=http://localhost:5173
-
-JWT_ACCESS_SECRET=your_jwt_access_secret_key_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
-
-GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+JWT_ACCESS_SECRET=your_access_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
-#### Frontend (`client/.env`)
-Create a `.env` file in the `client` directory:
+Client `.env` example:
 
 ```env
 VITE_API_URL=http://localhost:3000/api
 VITE_SOCKET_URL=http://localhost:3000
-VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
 ```
+
+## Documentation
+
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [SYSTEM_DETAILS.md](SYSTEM_DETAILS.md)
+
+## Notes
+
+This project is currently structured around a hybrid real-time editing model:
+
+- REST for document CRUD, auth, and permission management
+- WebSocket events for low-latency collaborative updates and presence
+- MongoDB as the source of truth for persistent document and revision history
 
 ---
 
-### 3. Server Setup & Launch
+
+# NPM Packages (External Dependencies)
+
+These are third-party libraries installed from the **NPM Registry** using:
 
 ```bash
-# Navigate to server directory
-cd server
-
-# Install dependencies
-npm install
-
-# Start development server with Nodemon
-npm run dev
+npm install <package-name>
 ```
-The server will start listening at `http://localhost:3000`.
+
+They provide reusable functionality without requiring custom implementations.
 
 ---
 
-### 4. Client Setup & Launch
+# 💻 Client Packages (`client/package.json`)
 
-Open a new terminal window:
-
-```bash
-# Navigate to client directory
-cd client
-
-# Install dependencies
-npm install
-
-# Start Vite development server
-npm run dev
-```
-The client application will run at `http://localhost:5173`.
+| Package | Purpose |
+|----------|---------|
+| **react** & **react-dom** | Core frontend library for building user interfaces and rendering components. |
+| **react-router-dom** | Enables client-side routing for Single-Page Applications (SPA). |
+| **vite** | Fast frontend build tool and development server. |
+| **@tiptap/react** & **@tiptap/starter-kit** | Core TipTap rich-text editor framework. |
+| **@tiptap/extension-color** | Adds text color formatting support. |
+| **@tiptap/extension-highlight** | Enables text highlighting. |
+| **@tiptap/extension-bullet-list** | Supports unordered (bullet) lists. |
+| **@tiptap/extension-ordered-list** | Supports numbered lists. |
+| **@tiptap/extension-link** | Adds hyperlink creation and editing. |
+| **@tiptap/extension-placeholder** | Displays placeholder text when the editor is empty. |
+| **@tiptap/extension-task-list** | Provides interactive task lists with checkboxes. |
+| **@tiptap/extension-text-align** | Enables left, center, right, and justified text alignment. |
+| **@tiptap/extension-underline** | Adds underline formatting support. |
+| **tiptap-pagination-plus** | Provides Microsoft Word-style paginated document editing. |
+| **socket.io-client** | Connects the client to the Socket.IO server for real-time collaboration. |
+| **axios** | Performs HTTP requests to the backend REST API. |
+| **@react-oauth/google** | Implements Google OAuth 2.0 authentication for user sign-in. |
+| **tailwindcss** | Utility-first CSS framework for responsive UI styling. |
+| **lucide-react** | Modern SVG icon library for React applications. |
+| **html2pdf.js** | Exports editor content as PDF documents. |
+| **date-fns** | Utility library for formatting and manipulating dates and timestamps. |
 
 ---
 
-## 📚 Documentation Links
+# 🖥️ Server Packages (`server/package.json`)
 
-- [📁 Database Schema Documentation](./DATABASE_SCHEMA.md)
-- [🔌 API & Socket.IO Event Documentation](./API_DOCUMENTATION.md)
+| Package | Purpose |
+|----------|---------|
+| **express** | Web application framework for building REST APIs and handling HTTP requests. |
+| **mongoose** | Object Data Modeling (ODM) library for interacting with MongoDB Atlas. |
+| **socket.io** | Server-side WebSocket library enabling real-time collaborative editing. |
+| **jsonwebtoken** | Creates and verifies JWT Access Tokens and Refresh Tokens for authentication. |
+| **bcrypt** | Securely hashes and verifies user passwords. |
+| **google-auth-library** | Verifies Google OAuth ID tokens during authentication. |
+| **nodemailer** | Sends emails via SMTP for password reset links and document sharing invitations. |
+| **cookie-parser** | Parses cookies included in incoming HTTP requests. |
+| **cors** | Enables Cross-Origin Resource Sharing (CORS) between frontend and backend applications. |
+| **dotenv** | Loads environment variables from a `.env` file into the application. |
+| **nodemon** | Automatically restarts the server during development when source files change. |
+

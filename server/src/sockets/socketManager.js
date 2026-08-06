@@ -12,11 +12,8 @@ const isAllowedOrigin = (origin) => {
   return false;
 };
 
-/**
- * Initializes and attaches Socket.IO to the HTTP server
- * @param {import("http").Server} httpServer - Node HTTP server instance
- * @returns {import("socket.io").Server} Configured Socket.IO instance
- */
+// Initializes and attaches Socket.IO to the HTTP server
+
 const initSocketServer = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
