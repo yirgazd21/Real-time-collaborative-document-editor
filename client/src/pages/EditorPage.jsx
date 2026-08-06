@@ -42,6 +42,7 @@ import {
   UserCheck,
   Sun,
   Moon,
+  Copy,
 } from "lucide-react";
 
 // Memoized Editor Content component to prevent React Virtual DOM reconciliation crashes with Tiptap DOM mutations
@@ -373,6 +374,22 @@ export const EditorPage = () => {
     }
   };
 
+  // Fork Personal Submission Copy
+  const handleCreatePersonalSubmissionCopy = async () => {
+    try {
+      const copyTitle = `${title || "Assignment"} - ${user?.name || "User"}'s Submission Copy`;
+      const res = await docService.createDocument({
+        title: copyTitle,
+        content: editor?.getHTML() || docData?.content || "",
+      });
+      if (res.document?._id) {
+        navigate(`/document/${res.document._id}`);
+      }
+    } catch (err) {
+      console.error("Failed to create personal submission copy:", err);
+    }
+  };
+
   // Zoom functionality (Ctrl + Scroll)
   useEffect(() => {
     const handleWheel = (e) => {
@@ -455,9 +472,105 @@ const handleExportWord = () => {
   document.body.removeChild(fileDownload);
 };
 
+const htmlToMarkdown = (htmlString) => {
+  if (!htmlString) return "";
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, "text/html");
+
+  const convertNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+
+    const tag = node.tagName.toLowerCase();
+    const children = Array.from(node.childNodes).map(convertNode).join("");
+
+    switch (tag) {
+      case "h1":
+        return `# ${children.trim()}\n\n`;
+      case "h2":
+        return `## ${children.trim()}\n\n`;
+      case "h3":
+        return `### ${children.trim()}\n\n`;
+      case "h4":
+        return `#### ${children.trim()}\n\n`;
+      case "h5":
+        return `##### ${children.trim()}\n\n`;
+      case "h6":
+        return `###### ${children.trim()}\n\n`;
+      case "strong":
+      case "b":
+        return `**${children}**`;
+      case "em":
+      case "i":
+        return `*${children}*`;
+      case "u":
+        return `<u>${children}</u>`;
+      case "s":
+      case "del":
+      case "strike":
+        return `~~${children}~~`;
+      case "code":
+        return `\`${children}\``;
+      case "pre":
+        return `\`\`\`\n${children.trim()}\n\`\`\`\n\n`;
+      case "blockquote":
+        return `> ${children.trim().replace(/\n/g, "\n> ")}\n\n`;
+      case "p":
+        return `${children.trim()}\n\n`;
+      case "br":
+        return `\n`;
+      case "hr":
+        return `---\n\n`;
+      case "a":
+        return `[${children}](${node.getAttribute("href") || ""})`;
+      case "img":
+        return `![${node.getAttribute("alt") || "image"}](${node.getAttribute("src") || ""})`;
+      case "ul": {
+        const items = Array.from(node.children)
+          .map((li) => `- ${convertNode(li).trim()}`)
+          .join("\n");
+        return `${items}\n\n`;
+      }
+      case "ol": {
+        const items = Array.from(node.children)
+          .map((li, idx) => `${idx + 1}. ${convertNode(li).trim()}`)
+          .join("\n");
+        return `${items}\n\n`;
+      }
+      case "li":
+        return children.trim();
+      case "table": {
+        const rows = Array.from(node.querySelectorAll("tr"));
+        if (rows.length === 0) return children;
+        const markdownRows = rows.map((tr) => {
+          const cells = Array.from(tr.querySelectorAll("th, td")).map((cell) =>
+            convertNode(cell).trim().replace(/\|/g, "\\|")
+          );
+          return `| ${cells.join(" | ")} |`;
+        });
+        if (rows[0].querySelectorAll("th").length > 0) {
+          const colCount = rows[0].querySelectorAll("th, td").length;
+          const separator = `| ${Array(colCount).fill("---").join(" | ")} |`;
+          markdownRows.splice(1, 0, separator);
+        }
+        return `\n${markdownRows.join("\n")}\n\n`;
+      }
+      default:
+        return children;
+    }
+  };
+
+  return convertNode(doc.body).trim().replace(/\n{3,}/g, "\n\n");
+};
+
 const handleExportMarkdown = () => {
-  const textContent = editor?.getText() || "";
-  const blob = new Blob([textContent], { type: "text/markdown;charset=utf-8;" });
+  const htmlContent = editor?.getHTML() || "";
+  const markdownText = htmlToMarkdown(htmlContent);
+  const blob = new Blob([markdownText], { type: "text/markdown;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -554,6 +667,16 @@ return (
             ) : (
               <Moon className="w-4 h-4 text-indigo-600" />
             )}
+          </button>
+
+          {/* Personal Submission Copy Button */}
+          <button
+            onClick={handleCreatePersonalSubmissionCopy}
+            className="p-2 rounded-xl glass-panel text-indigo-500 hover:text-indigo-400 hover:bg-slate-800/30 transition-colors flex items-center gap-1.5 text-xs font-bold"
+            title="Create My Personal Submission Copy (Private for Me)"
+          >
+            <Copy className="w-4 h-4" />
+            <span className="hidden lg:inline">Personal Copy</span>
           </button>
 
           {/* Share Button */}
@@ -683,13 +806,31 @@ return (
         documentId={documentId}
         userAccessLevel={userAccessLevel}
         onRestoreSuccess={(restoredDoc) => {
+          if (!restoredDoc) return;
           setDocData(restoredDoc);
-          setTitle(restoredDoc.title || "Untitled Document");
-          if (editor && restoredDoc.content !== undefined) {
-            isRemoteChange.current = true;
-            editor.commands.setContent(restoredDoc.content);
+          if (restoredDoc.title) {
+            setTitle(restoredDoc.title);
           }
-          setSaveStatus("Saved (Local Restoration)");
+
+          if (editor && !editor.isDestroyed && restoredDoc.content !== undefined) {
+            isRemoteChange.current = true;
+            editor.commands.setContent(restoredDoc.content || "", false);
+          }
+          setSaveStatus("Saved");
+
+          // Sync restored state across Socket.IO room & database
+          if (socket && isConnected) {
+            socket.emit("send-changes", {
+              documentId,
+              content: restoredDoc.content || "",
+              title: restoredDoc.title || title,
+            });
+            socket.emit("save-document", {
+              documentId,
+              content: restoredDoc.content || "",
+              title: restoredDoc.title || title,
+            });
+          }
         }}
       />
 

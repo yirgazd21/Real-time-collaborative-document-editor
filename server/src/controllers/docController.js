@@ -9,13 +9,13 @@ const sendEmail = require("../utils/sendEmail");
  */
 const createDocument = async (req, res, next) => {
   try {
-    const { title } = req.body;
+    const { title, content } = req.body;
 
     const document = await Document.create({
       title: title || "Untitled Document",
       owner: req.user._id,
       lastModifiedBy: req.user._id,
-      content: "<p></p>",
+      content: content || "<p></p>",
     });
 
     await document.populate("owner", "name email avatar");

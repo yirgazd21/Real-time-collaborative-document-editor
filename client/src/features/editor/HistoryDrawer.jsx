@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { versionService } from "../../services/versionService";
+import { docService } from "../../services/docService";
+import { useAuth } from "../../context/AuthContext";
 import { Avatar } from "../../components/common/Avatar";
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
@@ -14,6 +17,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  Copy,
 } from "lucide-react";
 
 export const HistoryDrawer = ({
@@ -23,6 +27,8 @@ export const HistoryDrawer = ({
   userAccessLevel,
   onRestoreSuccess,
 }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [revisions, setRevisions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newVersionName, setNewVersionName] = useState("");
@@ -81,6 +87,23 @@ export const HistoryDrawer = ({
       } catch (err) {
         console.error("Restore failed:", err);
       }
+    }
+  };
+
+  const handleForkPersonalCopy = async (revision) => {
+    try {
+      const copyTitle = `${revision.versionName || "Snapshot"} - ${user?.name || "User"}'s Submission Copy`;
+      const res = await docService.createDocument({
+        title: copyTitle,
+        content: revision.content,
+      });
+      if (res.document?._id) {
+        setSelectedRevisionForPreview(null);
+        onClose();
+        navigate(`/document/${res.document._id}`);
+      }
+    } catch (err) {
+      console.error("Failed to create personal copy:", err);
     }
   };
 
@@ -312,13 +335,22 @@ export const HistoryDrawer = ({
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
               <Button
                 variant="ghost"
                 onClick={() => setSelectedRevisionForPreview(null)}
               >
                 Close Preview
               </Button>
+              
+              <Button
+                variant="outline"
+                className="border-indigo-500/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                onClick={() => handleForkPersonalCopy(selectedRevisionForPreview)}
+              >
+                <Copy className="w-4 h-4" /> Create My Personal Submission Copy
+              </Button>
+
               {canEdit && (
                 <Button
                   variant="primary"
@@ -329,7 +361,7 @@ export const HistoryDrawer = ({
                     )
                   }
                 >
-                  <RotateCcw className="w-4 h-4" /> Restore This Revision
+                  <RotateCcw className="w-4 h-4" /> Restore For All Collaborators
                 </Button>
               )}
             </div>
